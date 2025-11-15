@@ -4,8 +4,11 @@ import { FeaturedSection } from "@/components/FeaturedSection";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Eye, Shield } from "lucide-react";
 import heroImage from "@/assets/hero-desert.jpg";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
+  const { t } = useLanguage();
+  
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -21,13 +24,13 @@ const Index = () => {
         
         <div className="container relative z-10 text-center space-y-6 px-4">
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 animate-fade-in">
-            Discover Saudi Arabia
+            {t('hero.title')}
             <span className="block text-transparent bg-gradient-to-r from-desert-gold to-oasis-teal bg-clip-text">
-              Your Journey Starts Here
+              {t('hero.subtitle')}
             </span>
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            Unified travel platform with AI-powered planning, VR previews, and seamless booking
+            {t('hero.cta')}
           </p>
           <SearchBar />
         </div>
