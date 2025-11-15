@@ -14,28 +14,28 @@ export const FeaturedSection = () => {
       title: t('search.flights'),
       description: "Find the best deals on flights across Saudi Arabia and beyond",
       image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop",
-      gradient: "from-blue-500 to-cyan-500",
+      gradient: "from-terracotta to-sandy-gold",
     },
     {
       icon: Hotel,
       title: t('search.hotels'),
       description: t('featured.luxuryDesc'),
       image: hotelImage,
-      gradient: "from-desert-gold to-sunset-orange",
+      gradient: "from-warm-beige to-desert-sand",
     },
     {
       icon: Compass,
       title: t('search.activities'),
       description: t('featured.activitiesDesc'),
       image: activitiesImage,
-      gradient: "from-oasis-teal to-deep-blue",
+      gradient: "from-deep-brown to-terracotta",
     },
     {
       icon: Sparkles,
       title: t('nav.tripPlanner'),
       description: "Let AI create your perfect itinerary based on your preferences",
       image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop",
-      gradient: "from-purple-500 to-pink-500",
+      gradient: "from-sandy-gold to-warm-beige",
     },
   ];
 

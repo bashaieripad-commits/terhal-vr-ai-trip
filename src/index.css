@@ -8,52 +8,52 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 35 20% 97%;
-    --foreground: 220 40% 10%;
+    --background: 38 35% 96%;
+    --foreground: 25 40% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 40% 10%;
+    --card: 38 25% 98%;
+    --card-foreground: 25 40% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 40% 10%;
+    --popover: 38 25% 98%;
+    --popover-foreground: 25 40% 15%;
 
-    --primary: 43 74% 49%;
+    --primary: 18 65% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 35 25% 90%;
-    --secondary-foreground: 220 40% 10%;
+    --secondary: 38 45% 88%;
+    --secondary-foreground: 25 40% 15%;
 
-    --muted: 35 20% 95%;
-    --muted-foreground: 220 20% 45%;
+    --muted: 38 30% 92%;
+    --muted-foreground: 25 30% 45%;
 
-    --accent: 178 64% 48%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 40 55% 65%;
+    --accent-foreground: 25 40% 15%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 35 20% 88%;
-    --input: 35 20% 88%;
-    --ring: 43 74% 49%;
+    --border: 38 25% 85%;
+    --input: 38 25% 85%;
+    --ring: 18 65% 60%;
 
     --radius: 0.75rem;
     
-    /* Terhal custom tokens */
-    --desert-gold: 43 74% 49%;
-    --desert-sand: 35 35% 85%;
-    --oasis-teal: 178 64% 48%;
-    --deep-blue: 220 60% 25%;
-    --sunset-orange: 25 85% 60%;
+    /* Terhal custom tokens - Earthy Saudi colors */
+    --desert-sand: 35 35% 75%;
+    --warm-beige: 38 45% 82%;
+    --terracotta: 18 65% 60%;
+    --deep-brown: 25 40% 35%;
+    --sandy-gold: 40 55% 65%;
     
-    /* Gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(43 74% 49%) 0%, hsl(178 64% 48%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(35 25% 98%) 100%);
-    --gradient-sunset: linear-gradient(135deg, hsl(25 85% 60%) 0%, hsl(43 74% 49%) 50%, hsl(178 64% 48%) 100%);
+    /* Gradients - Earthy tones */
+    --gradient-hero: linear-gradient(135deg, hsl(18 65% 60%) 0%, hsl(40 55% 65%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(38 25% 98%) 0%, hsl(38 35% 95%) 100%);
+    --gradient-desert: linear-gradient(135deg, hsl(35 35% 75%) 0%, hsl(18 65% 60%) 50%, hsl(40 55% 65%) 100%);
     
     /* Shadows */
-    --shadow-sm: 0 2px 8px hsl(43 74% 49% / 0.1);
-    --shadow-md: 0 4px 16px hsl(43 74% 49% / 0.15);
-    --shadow-lg: 0 8px 32px hsl(43 74% 49% / 0.2);
+    --shadow-sm: 0 2px 8px hsl(18 65% 60% / 0.1);
+    --shadow-md: 0 4px 16px hsl(18 65% 60% / 0.15);
+    --shadow-lg: 0 8px 32px hsl(18 65% 60% / 0.2);
     
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -107,11 +107,11 @@ All colors MUST be HSL.
     --input: 220 30% 20%;
     --ring: 43 74% 49%;
     
-    --desert-gold: 43 74% 49%;
-    --desert-sand: 35 20% 25%;
-    --oasis-teal: 178 64% 48%;
-    --deep-blue: 220 60% 35%;
-    --sunset-orange: 25 85% 60%;
+    --desert-sand: 35 35% 35%;
+    --warm-beige: 38 35% 45%;
+    --terracotta: 18 65% 50%;
+    --deep-brown: 25 40% 25%;
+    --sandy-gold: 40 55% 55%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
