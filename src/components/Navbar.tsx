@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Plane, Search, Calendar, User, Menu, Languages } from "lucide-react";
+import { Search, Calendar, User, Menu, Languages, Tent } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -14,7 +14,7 @@ export const Navbar = () => {
   const { language, toggleLanguage, t } = useLanguage();
 
   const navLinks = [
-    { to: "/", label: t('nav.home'), icon: Plane },
+    { to: "/", label: t('nav.home'), icon: Tent },
     { to: "/search", label: t('nav.search'), icon: Search },
     { to: "/trip-planner", label: t('nav.tripPlanner'), icon: Calendar },
   ];
@@ -22,12 +22,12 @@ export const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="rounded-lg bg-gradient-to-r from-desert-gold to-oasis-teal p-2">
-            <Plane className="h-6 w-6 text-white" />
+        <Link to="/" className="flex items-center space-x-2 rtl:space-x-reverse">
+          <div className="rounded-lg bg-gradient-to-r from-terracotta to-sandy-gold p-2 shadow-md">
+            <Tent className="h-6 w-6 text-white" />
           </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-desert-gold to-oasis-teal bg-clip-text text-transparent">
-            Terhal
+          <span className="text-2xl font-bold bg-gradient-to-r from-terracotta to-sandy-gold bg-clip-text text-transparent">
+            ترحال
           </span>
         </Link>
 
