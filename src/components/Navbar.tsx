@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Plane, Search, Calendar, User, Menu } from "lucide-react";
+import { Plane, Search, Calendar, User, Menu, Languages } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Sheet,
   SheetContent,
@@ -10,11 +11,12 @@ import {
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { language, toggleLanguage, t } = useLanguage();
 
   const navLinks = [
-    { to: "/", label: "Home", icon: Plane },
-    { to: "/search", label: "Search", icon: Search },
-    { to: "/trip-planner", label: "Trip Planner", icon: Calendar },
+    { to: "/", label: t('nav.home'), icon: Plane },
+    { to: "/search", label: t('nav.search'), icon: Search },
+    { to: "/trip-planner", label: t('nav.tripPlanner'), icon: Calendar },
   ];
 
   return (
@@ -43,16 +45,25 @@ export const Navbar = () => {
           ))}
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 rtl:space-x-reverse">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleLanguage}
+            className="hidden md:flex"
+            aria-label="Toggle language"
+          >
+            <Languages className="h-5 w-5" />
+          </Button>
           <Link to="/auth" className="hidden md:block">
             <Button variant="ghost" size="sm">
-              <User className="h-4 w-4 mr-2" />
-              Sign In
+              <User className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+              {t('nav.signIn')}
             </Button>
           </Link>
           <Link to="/auth" className="hidden md:block">
             <Button variant="hero" size="sm">
-              Get Started
+              {t('nav.getStarted')}
             </Button>
           </Link>
 
@@ -77,15 +88,26 @@ export const Navbar = () => {
                   </Link>
                 ))}
                 <div className="pt-4 border-t border-border space-y-2">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      toggleLanguage();
+                      setIsOpen(false);
+                    }}
+                  >
+                    <Languages className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                    {language === 'ar' ? 'English' : 'العربية'}
+                  </Button>
                   <Link to="/auth" onClick={() => setIsOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">
-                      <User className="h-4 w-4 mr-2" />
-                      Sign In
+                      <User className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                      {t('nav.signIn')}
                     </Button>
                   </Link>
                   <Link to="/auth" onClick={() => setIsOpen(false)}>
                     <Button variant="hero" className="w-full">
-                      Get Started
+                      {t('nav.getStarted')}
                     </Button>
                   </Link>
                 </div>

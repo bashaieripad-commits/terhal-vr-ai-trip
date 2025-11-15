@@ -131,4 +131,15 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* RTL Support */
+  [dir="rtl"] {
+    direction: rtl;
+  }
+  
+  [dir="rtl"] .space-x-2 > * + *,
+  [dir="rtl"] .space-x-4 > * + * {
+    margin-right: var(--space);
+    margin-left: 0;
+  }
 }
