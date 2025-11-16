@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, Calendar, User, Menu, Languages, Tent } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Search, Calendar, User, Menu, Languages, Tent, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCart } from "@/contexts/CartContext";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +14,7 @@ import {
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { language, toggleLanguage, t } = useLanguage();
+  const { items } = useCart();
 
   const navLinks = [
     { to: "/", label: t('nav.home'), icon: Tent },
@@ -46,6 +49,16 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4 rtl:space-x-reverse">
+          <Link to="/checkout" className="relative hidden md:block">
+            <Button variant="ghost" size="icon">
+              <ShoppingCart className="h-5 w-5" />
+              {items.length > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                  {items.length}
+                </Badge>
+              )}
+            </Button>
+          </Link>
           <Button
             variant="ghost"
             size="icon"

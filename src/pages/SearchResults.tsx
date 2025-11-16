@@ -4,8 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Star, Eye, MapPin } from "lucide-react";
+import { Star, Eye, MapPin, ShoppingCart } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const mockResults = [
   {
@@ -42,6 +45,20 @@ const mockResults = [
 
 const SearchResults = () => {
   const [priceRange, setPriceRange] = useState([0, 1000]);
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+  const { language } = useLanguage();
+
+  const handleAddToCart = (item: typeof mockResults[0]) => {
+    addItem({
+      id: `${item.type}-${item.id}-${Date.now()}`,
+      type: item.type as "hotel" | "flight" | "activity",
+      name: item.name,
+      location: item.location,
+      price: item.price,
+      image: item.image,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
