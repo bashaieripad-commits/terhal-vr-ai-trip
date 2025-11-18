@@ -11,6 +11,8 @@ import HotelDetails from "./pages/HotelDetails";
 import Checkout from "./pages/Checkout";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import Flights from "./pages/Flights";
+import SeatSelection from "./pages/SeatSelection";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
         <Route path="/auth" element={<Auth />} />
         <Route path="/hotel/:id" element={<HotelDetails />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/flights" element={<Flights />} />
+        <Route path="/flight/:id/seats" element={<SeatSelection />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

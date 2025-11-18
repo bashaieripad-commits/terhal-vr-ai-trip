@@ -56,6 +56,63 @@ export type Database = {
         }
         Relationships: []
       }
+      flights: {
+        Row: {
+          aircraft_type: string | null
+          airline: string
+          arrival_time: string
+          available_seats: number
+          base_price: number
+          created_at: string | null
+          departure_time: string
+          flight_number: string
+          from_city: string
+          gate: string | null
+          id: string
+          status: string
+          terminal: string | null
+          to_city: string
+          total_seats: number
+          updated_at: string | null
+        }
+        Insert: {
+          aircraft_type?: string | null
+          airline: string
+          arrival_time: string
+          available_seats?: number
+          base_price: number
+          created_at?: string | null
+          departure_time: string
+          flight_number: string
+          from_city: string
+          gate?: string | null
+          id?: string
+          status?: string
+          terminal?: string | null
+          to_city: string
+          total_seats?: number
+          updated_at?: string | null
+        }
+        Update: {
+          aircraft_type?: string | null
+          airline?: string
+          arrival_time?: string
+          available_seats?: number
+          base_price?: number
+          created_at?: string | null
+          departure_time?: string
+          flight_number?: string
+          from_city?: string
+          gate?: string | null
+          id?: string
+          status?: string
+          terminal?: string | null
+          to_city?: string
+          total_seats?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -247,6 +304,72 @@ export type Database = {
         }
         Relationships: []
       }
+      seats: {
+        Row: {
+          created_at: string | null
+          flight_id: string
+          id: string
+          is_aisle: boolean | null
+          is_available: boolean | null
+          is_window: boolean | null
+          price_modifier: number | null
+          reservation_id: string | null
+          reserved_by: string | null
+          seat_class: string
+          seat_column: string
+          seat_number: string
+          seat_row: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          flight_id: string
+          id?: string
+          is_aisle?: boolean | null
+          is_available?: boolean | null
+          is_window?: boolean | null
+          price_modifier?: number | null
+          reservation_id?: string | null
+          reserved_by?: string | null
+          seat_class: string
+          seat_column: string
+          seat_number: string
+          seat_row: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          flight_id?: string
+          id?: string
+          is_aisle?: boolean | null
+          is_available?: boolean | null
+          is_window?: boolean | null
+          price_modifier?: number | null
+          reservation_id?: string | null
+          reserved_by?: string | null
+          seat_class?: string
+          seat_column?: string
+          seat_number?: string
+          seat_row?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seats_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "flights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seats_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_logs: {
         Row: {
           created_at: string | null
@@ -350,6 +473,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_flight_seats: {
+        Args: { p_aircraft_type?: string; p_flight_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
