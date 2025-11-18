@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Auth = () => {
   return (
@@ -143,6 +144,16 @@ const Auth = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Admin Login Link */}
+          <div className="mt-6 text-center">
+            <Link to="/admin/login">
+              <Button variant="outline" className="gap-2">
+                <Shield className="w-4 h-4" />
+                تسجيل دخول الموظفين
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
