@@ -1,12 +1,82 @@
+import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Lock, User, Shield } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Auth = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  
+  // Sign In State
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
+  
+  // Sign Up State
+  const [signUpFullName, setSignUpFullName] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: signInEmail,
+        password: signInPassword,
+      });
+
+      if (error) throw error;
+
+      toast.success("تم تسجيل الدخول بنجاح!");
+      navigate("/");
+    } catch (error: any) {
+      toast.error(error.message || "فشل تسجيل الدخول");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (signUpPassword !== signUpConfirmPassword) {
+      toast.error("كلمات المرور غير متطابقة");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: signUpEmail,
+        password: signUpPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: signUpFullName,
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success("تم إنشاء الحساب بنجاح!");
+      navigate("/");
+    } catch (error: any) {
+      toast.error(error.message || "فشل إنشاء الحساب");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
       <Navbar />
@@ -33,79 +103,108 @@ const Auth = () => {
                 </TabsList>
 
                 <TabsContent value="signin" className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-primary" />
-                      Email
-                    </label>
-                    <Input type="email" placeholder="your@email.com" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-primary" />
-                      Password
-                    </label>
-                    <Input type="password" placeholder="••••••••" />
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" className="rounded" />
-                      <span>Remember me</span>
-                    </label>
-                    <a href="#" className="text-primary hover:underline">
-                      Forgot password?
-                    </a>
-                  </div>
-                  <Button variant="hero" className="w-full" size="lg">
-                    Sign In
-                  </Button>
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-primary" />
+                        Email
+                      </label>
+                      <Input 
+                        type="email" 
+                        placeholder="your@email.com"
+                        value={signInEmail}
+                        onChange={(e) => setSignInEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-primary" />
+                        Password
+                      </label>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      variant="hero" 
+                      className="w-full" 
+                      size="lg"
+                      disabled={loading}
+                    >
+                      {loading ? "جاري التحميل..." : "تسجيل الدخول"}
+                    </Button>
+                  </form>
                 </TabsContent>
 
                 <TabsContent value="signup" className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <User className="h-4 w-4 text-primary" />
-                      Full Name
-                    </label>
-                    <Input placeholder="John Doe" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-primary" />
-                      Email
-                    </label>
-                    <Input type="email" placeholder="your@email.com" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-primary" />
-                      Password
-                    </label>
-                    <Input type="password" placeholder="••••••••" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-primary" />
-                      Confirm Password
-                    </label>
-                    <Input type="password" placeholder="••••••••" />
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <input type="checkbox" className="rounded" />
-                    <span>
-                      I agree to the{" "}
-                      <a href="#" className="text-primary hover:underline">
-                        Terms of Service
-                      </a>{" "}
-                      and{" "}
-                      <a href="#" className="text-primary hover:underline">
-                        Privacy Policy
-                      </a>
-                    </span>
-                  </div>
-                  <Button variant="hero" className="w-full" size="lg">
-                    Create Account
-                  </Button>
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <User className="h-4 w-4 text-primary" />
+                        الاسم الكامل
+                      </label>
+                      <Input 
+                        placeholder="الاسم الكامل"
+                        value={signUpFullName}
+                        onChange={(e) => setSignUpFullName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-primary" />
+                        البريد الإلكتروني
+                      </label>
+                      <Input 
+                        type="email" 
+                        placeholder="your@email.com"
+                        value={signUpEmail}
+                        onChange={(e) => setSignUpEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-primary" />
+                        كلمة المرور
+                      </label>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={signUpPassword}
+                        onChange={(e) => setSignUpPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-primary" />
+                        تأكيد كلمة المرور
+                      </label>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={signUpConfirmPassword}
+                        onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      variant="hero" 
+                      className="w-full" 
+                      size="lg"
+                      disabled={loading}
+                    >
+                      {loading ? "جاري الإنشاء..." : "إنشاء حساب"}
+                    </Button>
+                  </form>
                 </TabsContent>
               </Tabs>
 
