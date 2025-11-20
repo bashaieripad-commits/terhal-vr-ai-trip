@@ -81,17 +81,17 @@ const Flights = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+      <main className="container mx-auto px-4 py-8" role="main" id="main-content">
+        <header className="mb-8">
           <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-            <Plane className="w-10 h-10 text-primary" />
+            <Plane className="w-10 h-10 text-primary" aria-hidden="true" />
             الرحلات الجوية
           </h1>
           <p className="text-muted-foreground">ابحث عن رحلتك واختر مقعدك المفضل</p>
-        </div>
+        </header>
 
         {/* Search Form */}
-        <Card className="mb-8">
+        <Card className="mb-8" role="search" aria-label="نموذج البحث عن الرحلات">
           <CardHeader>
             <CardTitle>البحث عن رحلات</CardTitle>
             <CardDescription>أدخل معلومات رحلتك</CardDescription>
@@ -105,6 +105,7 @@ const Flights = () => {
                   placeholder="المدينة"
                   value={searchFrom}
                   onChange={(e) => setSearchFrom(e.target.value)}
+                  aria-label="مدينة المغادرة"
                 />
               </div>
               <div className="space-y-2">
@@ -114,6 +115,7 @@ const Flights = () => {
                   placeholder="المدينة"
                   value={searchTo}
                   onChange={(e) => setSearchTo(e.target.value)}
+                  aria-label="مدينة الوصول"
                 />
               </div>
               <div className="space-y-2">
@@ -235,7 +237,7 @@ const Flights = () => {
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };
