@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plane, ArrowLeft, Info } from "lucide-react";
 import { useCart, CartItem } from "@/contexts/CartContext";
+import { cn } from "@/lib/utils";
 
 interface Seat {
   id: string;
@@ -152,88 +153,89 @@ const SeatSelection = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/flights")} className="mb-4">
-          <ArrowLeft className="w-4 h-4 ml-2" />
+      <main className="container mx-auto px-4 py-8" role="main" id="main-content">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/flights")}
+          className="mb-6"
+          aria-label="العودة إلى قائمة الرحلات"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
           العودة للرحلات
         </Button>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Seat Map */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plane className="w-5 h-5" />
-                  اختر مقعدك - {flight.airline} {flight.flight_number}
-                </CardTitle>
-                <CardDescription>
-                  من {flight.from_city} إلى {flight.to_city}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Legend */}
-                <div className="flex flex-wrap gap-4 mb-6 p-4 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-amber-100 border-2 border-amber-300 rounded"></div>
-                    <span className="text-sm">درجة أولى</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-100 border-2 border-blue-300 rounded"></div>
-                    <span className="text-sm">درجة الأعمال</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-green-100 border-2 border-green-300 rounded"></div>
-                    <span className="text-sm">الدرجة السياحية</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-muted border-2 rounded"></div>
-                    <span className="text-sm">محجوز</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary border-2 rounded"></div>
-                    <span className="text-sm">مختار</span>
-                  </div>
+          <Card className="lg:col-span-2" role="region" aria-label="خريطة المقاعد">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plane className="w-6 h-6 text-primary" aria-hidden="true" />
+                خريطة المقاعد
+              </CardTitle>
+              <CardDescription>اختر مقعدك المفضل</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Legend */}
+              <div 
+                className="flex flex-wrap gap-4 mb-6 p-4 bg-muted/30 rounded-lg"
+                role="region"
+                aria-label="توضيح رموز المقاعد"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-amber-100 border-2 border-amber-300 rounded" aria-hidden="true"></div>
+                  <span className="text-sm">درجة أولى</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-100 border-2 border-blue-300 rounded" aria-hidden="true"></div>
+                  <span className="text-sm">درجة الأعمال</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-green-100 border-2 border-green-300 rounded" aria-hidden="true"></div>
+                  <span className="text-sm">الدرجة السياحية</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-muted border-2 rounded" aria-hidden="true"></div>
+                  <span className="text-sm">محجوز</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-primary border-2 rounded" aria-hidden="true"></div>
+                  <span className="text-sm">مختار</span>
+                </div>
+              </div>
 
-                {/* Seat Grid */}
-                <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {Object.entries(seatsByRow).map(([row, rowSeats]) => (
-                    <div key={row} className="flex items-center gap-2">
-                      <span className="w-8 text-center font-semibold text-sm text-muted-foreground">
-                        {row}
-                      </span>
-                      <div className="flex gap-2">
-                        {rowSeats.map((seat, idx) => (
-                          <div key={seat.id} className="flex items-center">
-                            <button
-                              onClick={() => handleSeatClick(seat)}
-                              disabled={!seat.is_available}
-                              className={`
-                                w-10 h-10 rounded border-2 font-semibold text-xs
-                                transition-all duration-200
-                                ${getSeatClass(seat)}
-                                ${seat.is_available ? 'hover:scale-110' : ''}
-                              `}
-                              title={`${seat.seat_number} - ${seat.seat_class} - ${
-                                seat.is_available ? 'متاح' : 'محجوز'
-                              }`}
-                            >
-                              {seat.seat_column}
-                            </button>
-                            {/* Aisle spacing */}
-                            {seat.seat_column === 'C' && (
-                              <div className="w-4"></div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+              {/* Seat Grid */}
+              <div className="space-y-2 max-h-[600px] overflow-y-auto" role="grid" aria-label="مخطط المقاعد">
+                {Object.entries(seatsByRow).map(([row, rowSeats]) => (
+                  <div key={row} className="flex items-center gap-2" role="row">
+                    <span className="w-8 text-center font-semibold text-sm text-muted-foreground" aria-label={`صف ${row}`}>
+                      {row}
+                    </span>
+                    <div className="flex gap-2">
+                      {rowSeats.map((seat) => (
+                        <button
+                          key={seat.id}
+                          onClick={() => handleSeatClick(seat)}
+                          disabled={!seat.is_available}
+                          className={cn(
+                            "w-12 h-12 rounded-lg border-2 transition-all font-semibold text-sm",
+                            "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                            getSeatClass(seat),
+                            !seat.is_available && "opacity-50"
+                          )}
+                          role="gridcell"
+                          aria-label={`مقعد ${seat.seat_number} - ${seat.seat_class === 'first' ? 'درجة أولى' : seat.seat_class === 'business' ? 'درجة رجال الأعمال' : 'الدرجة الاقتصادية'} ${!seat.is_available ? '- محجوز' : selectedSeat?.id === seat.id ? '- محدد' : '- متاح'}`}
+                          aria-pressed={selectedSeat?.id === seat.id}
+                          title={`مقعد ${seat.seat_number} - ${seat.seat_class === 'first' ? 'درجة أولى' : seat.seat_class === 'business' ? 'درجة رجال الأعمال' : 'الدرجة الاقتصادية'}`}
+                        >
+                          {seat.seat_number}
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Booking Summary */}
           <div>
@@ -304,7 +306,7 @@ const SeatSelection = () => {
             </Card>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

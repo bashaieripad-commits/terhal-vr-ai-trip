@@ -12,13 +12,27 @@ const Index = () => {
   
   return (
     <div className="min-h-screen">
+      {/* Skip to main content link for screen readers */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
+      >
+        تخطي إلى المحتوى الرئيسي | Skip to main content
+      </a>
+      
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative h-[600px] flex items-center justify-center overflow-hidden">
+      <section 
+        className="relative h-[600px] flex items-center justify-center overflow-hidden"
+        role="banner"
+        aria-label="قسم البطل الرئيسي | Hero section"
+      >
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroImage})` }}
+          role="img"
+          aria-label="صورة الصحراء - خلفية البطل | Desert hero background image"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-deep-brown/80 via-terracotta/50 to-transparent" />
         </div>
@@ -37,14 +51,20 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Main Content */}
+      <main id="main-content" role="main">
+
       {/* Features Grid */}
       <FeaturedSection />
 
       {/* VR Experience Section */}
-      <section className="py-16 px-4 bg-gradient-to-b from-secondary/30 to-background">
+      <section 
+        className="py-16 px-4 bg-gradient-to-b from-secondary/30 to-background"
+        aria-labelledby="vr-section-title"
+      >
         <div className="container">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">استكشف بتقنية VR | Explore with VR</h2>
+            <h2 id="vr-section-title" className="text-4xl font-bold mb-4">استكشف بتقنية VR | Explore with VR</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               جرّب الغرف والفنادق قبل الحجز | Experience rooms and hotels before booking
             </p>
@@ -56,46 +76,50 @@ const Index = () => {
       </section>
 
       {/* Key Benefits */}
-      <section className="py-16 bg-gradient-to-b from-background to-secondary/30">
+      <section 
+        className="py-16 bg-gradient-to-b from-background to-secondary/30"
+        aria-labelledby="benefits-section-title"
+      >
         <div className="container px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Why Choose Terhal?</h2>
+            <h2 id="benefits-section-title" className="text-4xl font-bold mb-4">Why Choose Terhal?</h2>
             <p className="text-muted-foreground text-lg">Experience the future of travel planning</p>
           </div>
           
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-            <div className="text-center space-y-4 p-6 rounded-lg bg-card shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-all">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-terracotta to-sandy-gold">
+            <article className="text-center space-y-4 p-6 rounded-lg bg-card shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-all">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-terracotta to-sandy-gold" aria-hidden="true">
                 <Sparkles className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold">AI Trip Planner</h3>
               <p className="text-muted-foreground">
                 Personalized itineraries based on your preferences, budget, and interests
               </p>
-            </div>
+            </article>
             
-            <div className="text-center space-y-4 p-6 rounded-lg bg-card shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-all">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-warm-beige to-desert-sand">
+            <article className="text-center space-y-4 p-6 rounded-lg bg-card shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-all">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-warm-beige to-desert-sand" aria-hidden="true">
                 <Eye className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold">Virtual Reality</h3>
               <p className="text-muted-foreground">
                 Immersive 360° tours of hotels and attractions before you book
               </p>
-            </div>
+            </article>
             
-            <div className="text-center space-y-4 p-6 rounded-lg bg-card shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-all">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-deep-brown to-terracotta">
+            <article className="text-center space-y-4 p-6 rounded-lg bg-card shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-all">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-sandy-gold to-warm-beige" aria-hidden="true">
                 <Shield className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold">Secure Booking</h3>
               <p className="text-muted-foreground">
-                One-click unified checkout for flights, hotels, and activities
+                Safe and secure payment processing with 24/7 customer support
               </p>
-            </div>
+            </article>
           </div>
         </div>
       </section>
+      </main>
 
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-terracotta via-sandy-gold to-warm-beige">

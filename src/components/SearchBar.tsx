@@ -11,48 +11,75 @@ export const SearchBar = () => {
   const { t } = useLanguage();
 
   return (
-    <Card className="w-full max-w-4xl mx-auto p-6 shadow-[var(--shadow-lg)] border-2 border-primary/20">
+    <Card 
+      className="w-full max-w-4xl mx-auto p-6 shadow-[var(--shadow-lg)] border-2 border-primary/20"
+      role="search"
+      aria-label="نموذج البحث | Search form"
+    >
       <Tabs defaultValue="all" className="w-full" onValueChange={setSearchType}>
-        <TabsList className="grid w-full grid-cols-4 mb-6">
-          <TabsTrigger value="all">{t('search.all')}</TabsTrigger>
-          <TabsTrigger value="flights">{t('search.flights')}</TabsTrigger>
-          <TabsTrigger value="hotels">{t('search.hotels')}</TabsTrigger>
-          <TabsTrigger value="activities">{t('search.activities')}</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 mb-6" role="tablist" aria-label="خيارات البحث | Search options">
+          <TabsTrigger value="all" role="tab" aria-controls="all-search">{t('search.all')}</TabsTrigger>
+          <TabsTrigger value="flights" role="tab" aria-controls="flights-search">{t('search.flights')}</TabsTrigger>
+          <TabsTrigger value="hotels" role="tab" aria-controls="hotels-search">{t('search.hotels')}</TabsTrigger>
+          <TabsTrigger value="activities" role="tab" aria-controls="activities-search">{t('search.activities')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="space-y-4">
+        <TabsContent value="all" className="space-y-4" id="all-search" role="tabpanel">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
+              <label htmlFor="destination-all" className="text-sm font-medium flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
                 {t('search.destination')}
               </label>
-              <Input placeholder={t('search.whereTo')} />
+              <Input 
+                id="destination-all"
+                placeholder={t('search.whereTo')} 
+                aria-label={t('search.destination')}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
+              <label htmlFor="checkin-all" className="text-sm font-medium flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" aria-hidden="true" />
                 {t('search.checkIn')}
               </label>
-              <Input type="date" />
+              <Input 
+                id="checkin-all"
+                type="date" 
+                aria-label={t('search.checkIn')}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
+              <label htmlFor="checkout-all" className="text-sm font-medium flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" aria-hidden="true" />
                 {t('search.checkOut')}
               </label>
-              <Input type="date" />
+              <Input 
+                id="checkout-all"
+                type="date" 
+                aria-label={t('search.checkOut')}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
+              <label htmlFor="guests-all" className="text-sm font-medium flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" aria-hidden="true" />
                 {t('search.guests')}
               </label>
-              <Input type="number" placeholder="2" min="1" />
+              <Input 
+                id="guests-all"
+                type="number" 
+                placeholder="2" 
+                min="1" 
+                aria-label={t('search.guests')}
+              />
             </div>
           </div>
-          <Button variant="hero" className="w-full" size="lg">
-            <Search className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" />
+          <Button 
+            variant="hero" 
+            className="w-full" 
+            size="lg"
+            aria-label={t('search.searchEverything')}
+          >
+            <Search className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" aria-hidden="true" />
             {t('search.searchEverything')}
           </Button>
         </TabsContent>
