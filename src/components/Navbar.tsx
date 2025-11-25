@@ -59,7 +59,7 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4 rtl:space-x-reverse">
-          <Link to="/checkout" className="relative hidden md:block">
+          <Link to="/checkout" className="relative">
             <Button 
               variant="ghost" 
               size="icon"
@@ -135,6 +135,15 @@ export const Navbar = () => {
                   </Link>
                 ))}
                 <div className="pt-4 border-t border-border space-y-2">
+                  <Link to="/checkout" onClick={() => setIsOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">
+                      <ShoppingCart className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                      {language === 'ar' ? 'سلة الحجز' : 'Cart'}
+                      {items.length > 0 && (
+                        <Badge className="mr-auto">{items.length}</Badge>
+                      )}
+                    </Button>
+                  </Link>
                   <Button
                     variant="ghost"
                     className="w-full justify-start"
