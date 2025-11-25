@@ -3,12 +3,41 @@ import { SearchBar } from "@/components/SearchBar";
 import { FeaturedSection } from "@/components/FeaturedSection";
 import { VRViewer } from "@/components/VRViewer";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Eye, Shield } from "lucide-react";
+import { Sparkles, Eye, Shield, Bell } from "lucide-react";
 import heroImage from "@/assets/hero-desert.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Index = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const { permission, requestPermission, checkNearbyActivities, shouldNotify, isSupported } = useNotifications({
+    enabled: true,
+    language
+  });
+
+  useEffect(() => {
+    // Check if we should show notification prompt
+    if (isSupported && permission === 'default' && shouldNotify()) {
+      setShowNotificationPrompt(true);
+    }
+
+    // Check for nearby activities if permission is granted
+    if (permission === 'granted' && shouldNotify()) {
+      checkNearbyActivities();
+    }
+  }, [permission, isSupported, shouldNotify, checkNearbyActivities]);
+
+  const handleEnableNotifications = async () => {
+    const result = await requestPermission();
+    setShowNotificationPrompt(false);
+    
+    if (result === 'granted') {
+      checkNearbyActivities();
+    }
+  };
   
   return (
     <div className="min-h-screen">
@@ -21,6 +50,43 @@ const Index = () => {
       </a>
       
       <Navbar />
+
+      {/* Notification Prompt */}
+      {showNotificationPrompt && (
+        <div className="fixed top-20 right-4 left-4 md:left-auto md:w-96 z-50 animate-in slide-in-from-top-2">
+          <Card className="border-2 border-primary shadow-[var(--shadow-lg)]">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Bell className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold mb-1">
+                    {language === "ar" ? "تفعيل الإشعارات" : "Enable Notifications"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {language === "ar"
+                      ? "احصل على إشعارات عن الفعاليات القريبة منك"
+                      : "Get notified about events near you"}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleEnableNotifications}>
+                      {language === "ar" ? "تفعيل" : "Enable"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowNotificationPrompt(false)}
+                    >
+                      {language === "ar" ? "لاحقاً" : "Later"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
       {/* Hero Section */}
       <section 
