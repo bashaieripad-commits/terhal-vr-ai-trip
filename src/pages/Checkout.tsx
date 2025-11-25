@@ -62,8 +62,8 @@ const Checkout = () => {
             </h2>
             <p className="text-muted-foreground mb-8 text-lg">
               {language === "ar" 
-                ? "أضف فنادق أو رحلات أو أنشطة للبدء في الحجز"
-                : "Add hotels, flights, or activities to start booking"}
+                ? "أضف فنادق أو رحلات أو فعاليات للبدء في الحجز"
+                : "Add hotels, flights, or events to start booking"}
             </p>
             <Button 
               onClick={() => navigate("/search")} 

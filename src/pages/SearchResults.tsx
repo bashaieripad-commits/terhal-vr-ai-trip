@@ -28,7 +28,9 @@ const SearchResults = () => {
   const { addItem } = useCart();
   const { language } = useLanguage();
   const [results, setResults] = useState<ContentItem[]>([]);
+  const [allResults, setAllResults] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
 
   useEffect(() => {
     fetchContent();
@@ -54,6 +56,7 @@ const SearchResults = () => {
         vr_content: item.vr_content,
       }));
       
+      setAllResults(formattedData);
       setResults(formattedData);
     } catch (error) {
       console.error("Error fetching content:", error);
@@ -62,6 +65,39 @@ const SearchResults = () => {
       setLoading(false);
     }
   };
+
+  const handleTypeFilter = (type: string) => {
+    setSelectedTypes((prev) => {
+      if (type === "all") {
+        return ["all"];
+      }
+      
+      let newTypes = prev.filter((t) => t !== "all");
+      
+      if (newTypes.includes(type)) {
+        newTypes = newTypes.filter((t) => t !== type);
+      } else {
+        newTypes.push(type);
+      }
+      
+      if (newTypes.length === 0) {
+        return ["all"];
+      }
+      
+      return newTypes;
+    });
+  };
+
+  useEffect(() => {
+    if (selectedTypes.includes("all")) {
+      setResults(allResults);
+    } else {
+      const filtered = allResults.filter((item) =>
+        selectedTypes.includes(item.content_type)
+      );
+      setResults(filtered);
+    }
+  }, [selectedTypes, allResults]);
 
   const handleViewDetails = (item: ContentItem) => {
     if (item.content_type === "hotel") {
@@ -111,12 +147,24 @@ const SearchResults = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Type</label>
+                  <label className="text-sm font-medium">
+                    {language === "ar" ? "النوع" : "Type"}
+                  </label>
                   <div className="space-y-2">
-                    {["All", "Hotels", "Flights", "Activities"].map((type) => (
-                      <label key={type} className="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" className="rounded" defaultChecked={type === "All"} />
-                        <span className="text-sm">{type}</span>
+                    {[
+                      { value: "all", label: language === "ar" ? "الكل" : "All" },
+                      { value: "hotel", label: language === "ar" ? "فنادق" : "Hotels" },
+                      { value: "flight", label: language === "ar" ? "رحلات" : "Flights" },
+                      { value: "activity", label: language === "ar" ? "فعاليات" : "Events" },
+                    ].map((type) => (
+                      <label key={type.value} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          checked={selectedTypes.includes(type.value)}
+                          onChange={() => handleTypeFilter(type.value)}
+                        />
+                        <span className="text-sm">{type.label}</span>
                       </label>
                     ))}
                   </div>
@@ -188,8 +236,10 @@ const SearchResults = () => {
                       )}
                       <Badge className="absolute top-2 left-2 bg-secondary text-secondary-foreground">
                         {language === "ar" 
-                          ? (result.content_type === "hotel" ? "فندق" : result.content_type === "activity" ? "فعالية" : result.content_type)
-                          : result.content_type}
+                          ? (result.content_type === "hotel" ? "فندق" : 
+                             result.content_type === "activity" ? "فعالية" : 
+                             result.content_type === "flight" ? "رحلة" : result.content_type)
+                          : (result.content_type === "activity" ? "Event" : result.content_type)}
                       </Badge>
                     </div>
                     <CardContent className="p-4 space-y-3">

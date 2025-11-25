@@ -26,7 +26,7 @@ const translations = {
     'search.all': 'الكل',
     'search.flights': 'الرحلات',
     'search.hotels': 'الفنادق',
-    'search.activities': 'الأنشطة',
+    'search.activities': 'الفعاليات',
     'search.destination': 'الوجهة',
     'search.checkIn': 'تسجيل الوصول',
     'search.checkOut': 'تسجيل المغادرة',
@@ -43,7 +43,7 @@ const translations = {
     'search.cityOrHotel': 'المدينة أو اسم الفندق',
     'search.searchHotels': 'ابحث عن فنادق',
     'search.whereToExplore': 'أين تريد الاستكشاف؟',
-    'search.searchActivities': 'ابحث عن أنشطة',
+    'search.searchActivities': 'ابحث عن فعاليات',
     
     // Featured Section
     'featured.title': 'استكشف الأفضل في المملكة',
@@ -51,7 +51,7 @@ const translations = {
     'featured.luxury': 'فنادق فاخرة',
     'featured.luxuryDesc': 'اختبر الضيافة على مستوى عالمي',
     'featured.explore': 'استكشف الآن',
-    'featured.activities': 'الأنشطة والمغامرات',
+    'featured.activities': 'الفعاليات والمغامرات',
     'featured.activitiesDesc': 'أنشئ ذكريات لا تُنسى',
     'featured.discover': 'اكتشف المزيد',
     'featured.heritage': 'التراث والثقافة',
@@ -75,7 +75,7 @@ const translations = {
     'search.all': 'All',
     'search.flights': 'Flights',
     'search.hotels': 'Hotels',
-    'search.activities': 'Activities',
+    'search.activities': 'Events',
     'search.destination': 'Destination',
     'search.checkIn': 'Check-in',
     'search.checkOut': 'Check-out',
@@ -92,7 +92,7 @@ const translations = {
     'search.cityOrHotel': 'City or hotel name',
     'search.searchHotels': 'Search Hotels',
     'search.whereToExplore': 'Where to explore?',
-    'search.searchActivities': 'Search Activities',
+    'search.searchActivities': 'Search Events',
     
     // Featured Section
     'featured.title': 'Explore the Best of Saudi Arabia',
@@ -100,7 +100,7 @@ const translations = {
     'featured.luxury': 'Luxury Hotels',
     'featured.luxuryDesc': 'Experience world-class hospitality',
     'featured.explore': 'Explore Now',
-    'featured.activities': 'Activities & Adventures',
+    'featured.activities': 'Events & Adventures',
     'featured.activitiesDesc': 'Create unforgettable memories',
     'featured.discover': 'Discover More',
     'featured.heritage': 'Heritage & Culture',
