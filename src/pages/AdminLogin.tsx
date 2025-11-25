@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Shield } from "lucide-react";
+import { Shield, ArrowRight } from "lucide-react";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -90,6 +90,16 @@ const AdminLogin = () => {
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => navigate("/")}
+              disabled={loading}
+            >
+              <ArrowRight className="ml-2 h-4 w-4" />
+              العودة للصفحة الرئيسية
             </Button>
           </form>
         </CardContent>
