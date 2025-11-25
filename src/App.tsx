@@ -13,6 +13,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Flights from "./pages/Flights";
 import SeatSelection from "./pages/SeatSelection";
+import ActivityDetails from "./pages/ActivityDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
         <Route path="/trip-planner" element={<TripPlanner />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/hotel/:id" element={<HotelDetails />} />
+        <Route path="/activity/:id" element={<ActivityDetails />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/flights" element={<Flights />} />
         <Route path="/flight/:id/seats" element={<SeatSelection />} />
