@@ -66,6 +66,8 @@ const SearchResults = () => {
   const handleViewDetails = (item: ContentItem) => {
     if (item.content_type === "hotel") {
       navigate(`/hotel/${item.id}`);
+    } else if (item.content_type === "activity") {
+      navigate(`/activity/${item.id}`);
     } else {
       toast.info(language === "ar" ? "قريباً" : "Coming soon");
     }
@@ -186,7 +188,7 @@ const SearchResults = () => {
                       )}
                       <Badge className="absolute top-2 left-2 bg-secondary text-secondary-foreground">
                         {language === "ar" 
-                          ? (result.content_type === "hotel" ? "فندق" : result.content_type)
+                          ? (result.content_type === "hotel" ? "فندق" : result.content_type === "activity" ? "فعالية" : result.content_type)
                           : result.content_type}
                       </Badge>
                     </div>
@@ -208,7 +210,9 @@ const SearchResults = () => {
                             {result.price} {language === "ar" ? "ر.س" : "SAR"}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {language === "ar" ? "لكل ليلة" : "per night"}
+                            {result.content_type === "hotel" 
+                              ? (language === "ar" ? "لكل ليلة" : "per night")
+                              : (language === "ar" ? "للشخص" : "per person")}
                           </p>
                         </div>
                       </div>
