@@ -138,7 +138,7 @@ export const Navbar = () => {
                   <Link to="/checkout" onClick={() => setIsOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">
                       <ShoppingCart className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                      {language === 'ar' ? 'سلة الحجز' : 'Cart'}
+                      {language === 'ar' ? 'السلة' : 'Cart'}
                       {items.length > 0 && (
                         <Badge className="mr-auto">{items.length}</Badge>
                       )}
