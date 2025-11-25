@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Flights from "./pages/Flights";
 import SeatSelection from "./pages/SeatSelection";
 import ActivityDetails from "./pages/ActivityDetails";
+import CreateAdmin from "./pages/CreateAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
         <Route path="/flight/:id/seats" element={<SeatSelection />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/create-admin" element={<CreateAdmin />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
