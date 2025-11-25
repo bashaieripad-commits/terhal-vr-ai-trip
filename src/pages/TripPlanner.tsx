@@ -38,9 +38,84 @@ const TripPlanner = () => {
   const [userLocation, setUserLocation] = useState("");
   const [loading, setLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<TripSuggestion | null>(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
-  const handleGenerateTrip = async () => {
-    if (!userLocation.trim()) {
+  const detectLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error(
+        language === "ar" 
+          ? "المتصفح لا يدعم تحديد الموقع"
+          : "Geolocation is not supported by your browser"
+      );
+      return;
+    }
+
+    setDetectingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Reverse geocoding using OpenStreetMap Nominatim
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=${language === "ar" ? "ar" : "en"}`
+          );
+          
+          const data = await response.json();
+          const city = data.address.city || data.address.town || data.address.state || data.address.country;
+          
+          setUserLocation(city);
+          toast.success(
+            language === "ar" 
+              ? `تم تحديد موقعك: ${city}`
+              : `Location detected: ${city}`
+          );
+          
+          // Auto-generate trip after location is detected
+          setTimeout(() => {
+            handleGenerateTrip(city);
+          }, 500);
+          
+        } catch (error) {
+          console.error('Error getting location name:', error);
+          toast.error(
+            language === "ar"
+              ? "حدث خطأ في تحديد اسم الموقع"
+              : "Error determining location name"
+          );
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setDetectingLocation(false);
+        
+        let errorMessage = language === "ar" 
+          ? "حدث خطأ في تحديد موقعك"
+          : "Error detecting your location";
+          
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = language === "ar"
+            ? "يرجى السماح بالوصول إلى الموقع في إعدادات المتصفح"
+            : "Please allow location access in your browser settings";
+        }
+        
+        toast.error(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  const handleGenerateTrip = async (locationOverride?: string) => {
+    const location = locationOverride || userLocation;
+    
+    if (!location.trim()) {
       toast.error(language === "ar" ? "الرجاء إدخال موقعك" : "Please enter your location");
       return;
     }
@@ -50,7 +125,7 @@ const TripPlanner = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-trip-planner', {
-        body: { userLocation, language }
+        body: { userLocation: location, language }
       });
 
       if (error) {
@@ -117,21 +192,40 @@ const TripPlanner = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <Input 
-                  placeholder={language === "ar" ? "مثال: الشرقية، الدمام، الخبر..." : "Example: Dammam, Khobar, Dhahran..."}
-                  className="text-lg"
-                  value={userLocation}
-                  onChange={(e) => setUserLocation(e.target.value)}
-                  disabled={loading}
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder={language === "ar" ? "مثال: الشرقية، الدمام، الخبر..." : "Example: Dammam, Khobar, Dhahran..."}
+                    className="text-lg flex-1"
+                    value={userLocation}
+                    onChange={(e) => setUserLocation(e.target.value)}
+                    disabled={loading || detectingLocation}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={detectLocation}
+                    disabled={loading || detectingLocation}
+                    className="flex-shrink-0"
+                  >
+                    {detectingLocation ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MapPin className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {language === "ar"
+                    ? "اضغط على أيقونة الموقع لتحديد موقعك تلقائياً"
+                    : "Click the location icon to detect your location automatically"}
+                </p>
               </div>
 
               <Button 
                 variant="hero" 
                 size="lg" 
                 className="w-full text-lg"
-                onClick={handleGenerateTrip}
-                disabled={loading}
+                onClick={() => handleGenerateTrip()}
+                disabled={loading || detectingLocation}
               >
                 {loading ? (
                   <>
