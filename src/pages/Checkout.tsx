@@ -4,25 +4,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Trash2, CreditCard, Hotel, Plane, MapPin, Calendar, ShieldCheck } from "lucide-react";
+import { Trash2, CreditCard, Hotel, Plane, MapPin, Calendar, ShieldCheck, Smartphone, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 
 const Checkout = () => {
   const { items, removeItem, clearCart, getTotalPrice } = useCart();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [paymentMethod, setPaymentMethod] = useState("card");
 
   const handlePayment = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const paymentMethodNames = {
+      card: language === "ar" ? "البطاقة الائتمانية" : "Credit Card",
+      apple: "Apple Pay",
+      google: "Google Pay",
+      stc: "STC Pay",
+      mada: "مدى"
+    };
+
     toast({
-      title: language === "ar" ? "تم الدفع بنجاح!" : "Payment Successful!",
+      title: language === "ar" ? "تم الدفع بنجاح! ✓" : "Payment Successful! ✓",
       description: language === "ar" 
-        ? "تم تأكيد حجزك. ستصلك رسالة تأكيد عبر البريد الإلكتروني."
-        : "Your booking is confirmed. A confirmation email will be sent to you.",
+        ? `تم الدفع عبر ${paymentMethodNames[paymentMethod as keyof typeof paymentMethodNames]}. ستصلك رسالة تأكيد عبر البريد الإلكتروني.`
+        : `Payment completed via ${paymentMethodNames[paymentMethod as keyof typeof paymentMethodNames]}. A confirmation email will be sent to you.`,
     });
     clearCart();
     navigate("/");
@@ -166,48 +178,134 @@ const Checkout = () => {
             <Card className="border-2 shadow-lg">
               <CardHeader className="bg-gradient-to-r from-primary/5 to-sandy-gold/5">
                 <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  {language === "ar" ? "معلومات الدفع" : "Payment Information"}
+                  <Wallet className="h-5 w-5 text-primary" />
+                  {language === "ar" ? "طريقة الدفع" : "Payment Method"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <form onSubmit={handlePayment} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cardName">
-                      {language === "ar" ? "الاسم على البطاقة" : "Name on Card"}
+                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
+                    <RadioGroupItem value="apple" id="apple" />
+                    <Label htmlFor="apple" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+                        <span className="text-white text-xl">🍎</span>
+                      </div>
+                      <div>
+                        <div className="font-semibold">Apple Pay</div>
+                        <div className="text-xs text-muted-foreground">
+                          {language === "ar" ? "دفع سريع وآمن" : "Fast and secure"}
+                        </div>
+                      </div>
                     </Label>
-                    <Input id="cardName" required />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cardNumber">
-                      {language === "ar" ? "رقم البطاقة" : "Card Number"}
+
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
+                    <RadioGroupItem value="google" id="google" />
+                    <Label htmlFor="google" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <div className="w-10 h-10 bg-white border rounded-lg flex items-center justify-center">
+                        <Smartphone className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">Google Pay</div>
+                        <div className="text-xs text-muted-foreground">
+                          {language === "ar" ? "دفع بنقرة واحدة" : "One-tap payment"}
+                        </div>
+                      </div>
                     </Label>
-                    <Input id="cardNumber" placeholder="1234 5678 9012 3456" required />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
+                    <RadioGroupItem value="stc" id="stc" />
+                    <Label htmlFor="stc" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                        <Wallet className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">STC Pay</div>
+                        <div className="text-xs text-muted-foreground">
+                          {language === "ar" ? "المحفظة الرقمية" : "Digital wallet"}
+                        </div>
+                      </div>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
+                    <RadioGroupItem value="mada" id="mada" />
+                    <Label htmlFor="mada" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
+                        <CreditCard className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">مدى - Mada</div>
+                        <div className="text-xs text-muted-foreground">
+                          {language === "ar" ? "البطاقة السعودية" : "Saudi card network"}
+                        </div>
+                      </div>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
+                    <RadioGroupItem value="card" id="card" />
+                    <Label htmlFor="card" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
+                        <CreditCard className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">
+                          {language === "ar" ? "بطاقة ائتمان" : "Credit/Debit Card"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Visa, Mastercard</div>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                {paymentMethod === "card" && (
+                  <div className="mt-6 space-y-4 p-4 border-2 rounded-lg bg-muted/20">
                     <div className="space-y-2">
-                      <Label htmlFor="expiry">
-                        {language === "ar" ? "تاريخ الانتهاء" : "Expiry Date"}
+                      <Label htmlFor="cardName">
+                        {language === "ar" ? "الاسم على البطاقة" : "Name on Card"}
                       </Label>
-                      <Input id="expiry" placeholder="MM/YY" required />
+                      <Input id="cardName" placeholder="John Doe" required />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="cvv">CVV</Label>
-                      <Input id="cvv" placeholder="123" required />
+                      <Label htmlFor="cardNumber">
+                        {language === "ar" ? "رقم البطاقة" : "Card Number"}
+                      </Label>
+                      <Input id="cardNumber" placeholder="1234 5678 9012 3456" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="expiry">
+                          {language === "ar" ? "تاريخ الانتهاء" : "Expiry Date"}
+                        </Label>
+                        <Input id="expiry" placeholder="MM/YY" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cvv">CVV</Label>
+                        <Input id="cvv" placeholder="123" maxLength={3} required />
+                      </div>
                     </div>
                   </div>
+                )}
+
+                <form onSubmit={handlePayment} className="mt-6">
                   <Button 
                     type="submit" 
                     className="w-full bg-gradient-to-r from-primary to-sandy-gold hover:opacity-90 transition-opacity" 
                     size="lg"
                   >
+                    {paymentMethod === "apple" && "🍎 "}
+                    {paymentMethod === "google" && "📱 "}
                     <CreditCard className="mr-2 h-5 w-5" />
-                    {language === "ar" ? "إتمام الدفع" : "Complete Payment"}
-                  </Button>
-                  <p className="text-xs text-center text-muted-foreground mt-2">
                     {language === "ar" 
-                      ? "جميع المعاملات آمنة ومشفرة" 
-                      : "All transactions are secure and encrypted"}
+                      ? `ادفع ${getTotalPrice()} ر.س` 
+                      : `Pay SAR ${getTotalPrice()}`}
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground mt-3">
+                    {language === "ar" 
+                      ? "🔒 جميع المعاملات آمنة ومشفرة ببروتوكول SSL" 
+                      : "🔒 All transactions are secure and encrypted with SSL"}
                   </p>
                 </form>
               </CardContent>
@@ -252,11 +350,15 @@ const Checkout = () => {
                 <div className="pt-4 space-y-2 text-xs text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-primary" />
-                    <span>{language === "ar" ? "دفع آمن ومشفر" : "Secure encrypted payment"}</span>
+                    <span>{language === "ar" ? "دفع آمن ومشفر SSL 256-bit" : "Secure 256-bit SSL encryption"}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-primary" />
-                    <span>{language === "ar" ? "جميع بطاقات الائتمان مقبولة" : "All major credit cards accepted"}</span>
+                    <span>{language === "ar" ? "جميع البطاقات والمحافظ مقبولة" : "All cards and wallets accepted"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="h-4 w-4 text-primary" />
+                    <span>{language === "ar" ? "دعم Apple Pay و Google Pay" : "Apple Pay & Google Pay supported"}</span>
                   </div>
                 </div>
               </CardContent>
