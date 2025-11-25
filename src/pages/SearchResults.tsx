@@ -5,59 +5,70 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Star, Eye, MapPin, ShoppingCart } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-const mockResults = [
-  {
-    id: 1,
-    type: "hotel",
-    name: "Luxury Desert Resort",
-    location: "Riyadh",
-    price: 450,
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop",
-    hasVR: true,
-  },
-  {
-    id: 2,
-    type: "flight",
-    name: "Jeddah to Riyadh",
-    location: "Saudi Airlines",
-    price: 280,
-    rating: 4.5,
-    image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop",
-    hasVR: false,
-  },
-  {
-    id: 3,
-    type: "activity",
-    name: "Historical Tour",
-    location: "Diriyah",
-    price: 120,
-    rating: 4.9,
-    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop",
-    hasVR: true,
-  },
-];
+interface ContentItem {
+  id: string;
+  title: string;
+  content_type: string;
+  location: string;
+  price: number;
+  images: string[];
+  vr_content: string | null;
+}
 
 const SearchResults = () => {
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [priceRange, setPriceRange] = useState([0, 2000]);
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { language } = useLanguage();
+  const [results, setResults] = useState<ContentItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAddToCart = (item: typeof mockResults[0]) => {
-    addItem({
-      id: `${item.type}-${item.id}-${Date.now()}`,
-      type: item.type as "hotel" | "flight" | "activity",
-      name: item.name,
-      location: item.location,
-      price: item.price,
-      image: item.image,
-    });
+  useEffect(() => {
+    fetchContent();
+  }, []);
+
+  const fetchContent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("content")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      
+      const formattedData: ContentItem[] = (data || []).map((item) => ({
+        id: item.id,
+        title: item.title,
+        content_type: item.content_type,
+        location: item.location || "",
+        price: item.price || 0,
+        images: Array.isArray(item.images) ? (item.images as string[]) : [],
+        vr_content: item.vr_content,
+      }));
+      
+      setResults(formattedData);
+    } catch (error) {
+      console.error("Error fetching content:", error);
+      toast.error(language === "ar" ? "خطأ في تحميل البيانات" : "Error loading data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewDetails = (item: ContentItem) => {
+    if (item.content_type === "hotel") {
+      navigate(`/hotel/${item.id}`);
+    } else {
+      toast.info(language === "ar" ? "قريباً" : "Coming soon");
+    }
   };
 
   return (
@@ -127,64 +138,100 @@ const SearchResults = () => {
           {/* Results Grid */}
           <main className="flex-1">
             <div className="mb-6">
-              <h1 className="text-3xl font-bold mb-2">Search Results</h1>
+              <h1 className="text-3xl font-bold mb-2">
+                {language === "ar" ? "نتائج البحث" : "Search Results"}
+              </h1>
               <p className="text-muted-foreground">
-                Found {mockResults.length} results matching your criteria
+                {language === "ar" 
+                  ? `تم العثور على ${results.length} نتيجة`
+                  : `Found ${results.length} results`}
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {mockResults.map((result) => (
-                <Card
-                  key={result.id}
-                  className="overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-300 hover:-translate-y-1"
-                >
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={result.image}
-                      alt={result.name}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-                    />
-                    {result.hasVR && (
-                      <Badge className="absolute top-2 right-2 bg-primary">
-                        <Eye className="h-3 w-3 mr-1" />
-                        VR
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  {language === "ar" ? "جاري التحميل..." : "Loading..."}
+                </p>
+              </div>
+            ) : results.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <h3 className="text-xl font-semibold mb-2">
+                    {language === "ar" ? "لا توجد نتائج" : "No results found"}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {language === "ar" ? "جرب البحث بمعايير أخرى" : "Try different search criteria"}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {results.map((result) => (
+                  <Card
+                    key={result.id}
+                    className="overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-300 hover:-translate-y-1"
+                  >
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={result.images[0] || "/placeholder.svg"}
+                        alt={result.title}
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                      />
+                      {result.vr_content && (
+                        <Badge className="absolute top-2 right-2 bg-primary">
+                          <Eye className="h-3 w-3 mr-1" />
+                          VR
+                        </Badge>
+                      )}
+                      <Badge className="absolute top-2 left-2 bg-secondary text-secondary-foreground">
+                        {language === "ar" 
+                          ? (result.content_type === "hotel" ? "فندق" : result.content_type)
+                          : result.content_type}
                       </Badge>
-                    )}
-                    <Badge className="absolute top-2 left-2 bg-secondary text-secondary-foreground">
-                      {result.type}
-                    </Badge>
-                  </div>
-                  <CardContent className="p-4 space-y-3">
-                    <div>
-                      <h3 className="font-bold text-lg">{result.name}</h3>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {result.location}
-                      </p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold">{result.rating}</span>
+                    <CardContent className="p-4 space-y-3">
+                      <div>
+                        <h3 className="font-bold text-lg">{result.title}</h3>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {result.location}
+                        </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-primary">${result.price}</p>
-                        <p className="text-xs text-muted-foreground">per person</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="font-semibold">4.8</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary">
+                            {result.price} {language === "ar" ? "ر.س" : "SAR"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "ar" ? "لكل ليلة" : "per night"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button className="flex-1" variant="outline">
-                        Details
-                      </Button>
-                      <Button className="flex-1" variant="hero">
-                        Book Now
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          className="flex-1" 
+                          variant="outline"
+                          onClick={() => handleViewDetails(result)}
+                        >
+                          {language === "ar" ? "التفاصيل" : "Details"}
+                        </Button>
+                        <Button 
+                          className="flex-1"
+                          onClick={() => handleViewDetails(result)}
+                        >
+                          {language === "ar" ? "احجز الآن" : "Book Now"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </main>
         </div>
       </div>

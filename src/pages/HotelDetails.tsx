@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -8,27 +8,22 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { CalendarIcon, MapPin, Star, Eye, ShoppingCart } from "lucide-react";
+import { CalendarIcon, MapPin, Star, Eye, ShoppingCart, ArrowLeft } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { VRViewer } from "@/components/VRViewer";
+import { toast } from "sonner";
 
-const mockHotels = [
-  {
-    id: "1",
-    name: "Luxury Desert Resort",
-    nameAr: "منتجع الصحراء الفاخر",
-    location: "Riyadh",
-    locationAr: "الرياض",
-    pricePerNight: 450,
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=500&fit=crop",
-    description: "Experience luxury in the heart of the desert with modern amenities and traditional Saudi hospitality.",
-    descriptionAr: "استمتع بالفخامة في قلب الصحراء مع وسائل الراحة الحديثة والضيافة السعودية التقليدية.",
-    amenities: ["Free WiFi", "Pool", "Spa", "Restaurant", "Gym"],
-    amenitiesAr: ["واي فاي مجاني", "مسبح", "سبا", "مطعم", "صالة رياضية"],
-    hasVR: true,
-  },
-];
+interface Hotel {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  price: number;
+  images: string[];
+  vr_content: string | null;
+}
 
 const HotelDetails = () => {
   const { id } = useParams();
@@ -37,23 +32,86 @@ const HotelDetails = () => {
   const { language } = useLanguage();
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showVR, setShowVR] = useState(false);
 
-  const hotel = mockHotels.find((h) => h.id === id) || mockHotels[0];
+  useEffect(() => {
+    if (id) {
+      fetchHotel();
+    }
+  }, [id]);
+
+  const fetchHotel = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("content")
+        .select("*")
+        .eq("content_type", "hotel")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setHotel({
+          id: data.id,
+          title: data.title,
+          description: data.description || "",
+          location: data.location || "",
+          price: data.price || 0,
+          images: Array.isArray(data.images) ? (data.images as string[]) : [],
+          vr_content: data.vr_content,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching hotel:", error);
+      toast.error(language === "ar" ? "خطأ في تحميل بيانات الفندق" : "Error loading hotel data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container py-8 px-4 text-center">
+          <p>{language === "ar" ? "جاري التحميل..." : "Loading..."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hotel) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container py-8 px-4 text-center">
+          <p>{language === "ar" ? "الفندق غير موجود" : "Hotel not found"}</p>
+          <Button onClick={() => navigate("/search")} className="mt-4">
+            {language === "ar" ? "العودة للبحث" : "Back to Search"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const nights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
-  const totalPrice = nights * hotel.pricePerNight;
+  const totalPrice = nights * hotel.price;
 
   const handleAddToCart = () => {
-    if (!checkIn || !checkOut) {
+    if (!checkIn || !checkOut || !hotel) {
+      toast.error(language === "ar" ? "الرجاء اختيار تواريخ الحجز" : "Please select booking dates");
       return;
     }
     addItem({
       id: `hotel-${hotel.id}-${Date.now()}`,
       type: "hotel",
-      name: language === "ar" ? hotel.nameAr : hotel.name,
-      location: language === "ar" ? hotel.locationAr : hotel.location,
+      name: hotel.title,
+      location: hotel.location,
       price: totalPrice,
-      image: hotel.image,
+      image: hotel.images[0] || "/placeholder.svg",
       nights,
       checkIn: format(checkIn, "yyyy-MM-dd"),
       checkOut: format(checkOut, "yyyy-MM-dd"),
@@ -66,24 +124,76 @@ const HotelDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5">
       <Navbar />
 
-      <div className="container py-8 px-4">
+      <main className="container py-8 px-4" role="main" id="main-content">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/search")}
+          className="mb-6"
+          aria-label={language === "ar" ? "العودة للبحث" : "Back to search"}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+          {language === "ar" ? "العودة" : "Back"}
+        </Button>
+
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            <img
-              src={hotel.image}
-              alt={language === "ar" ? hotel.nameAr : hotel.name}
-              className="w-full h-96 object-cover rounded-lg"
-            />
+            {/* Main Image */}
+            <div className="relative">
+              <img
+                src={hotel.images[0] || "/placeholder.svg"}
+                alt={hotel.title}
+                className="w-full h-96 object-cover rounded-lg shadow-lg"
+              />
+              {hotel.vr_content && (
+                <Button
+                  onClick={() => setShowVR(!showVR)}
+                  className="absolute top-4 right-4 gap-2"
+                  variant={showVR ? "default" : "secondary"}
+                >
+                  <Eye className="h-4 w-4" />
+                  {showVR 
+                    ? (language === "ar" ? "إخفاء VR" : "Hide VR") 
+                    : (language === "ar" ? "عرض VR" : "View VR")}
+                </Button>
+              )}
+            </div>
 
+            {/* VR Viewer */}
+            {showVR && hotel.vr_content && (
+              <div className="space-y-4">
+                <VRViewer />
+                <Card className="p-4 bg-primary/5">
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ar" 
+                      ? "استخدم الماوس أو اللمس للتحكم في عرض الغرفة ثلاثي الأبعاد" 
+                      : "Use mouse or touch to control the 3D room view"}
+                  </p>
+                </Card>
+              </div>
+            )}
+
+            {/* Additional Images */}
+            {hotel.images.length > 1 && (
+              <div className="grid grid-cols-3 gap-4">
+                {hotel.images.slice(1).map((img, i) => (
+                  <img
+                    key={i}
+                    src={img}
+                    alt={`${hotel.title} - ${i + 2}`}
+                    className="w-full h-32 object-cover rounded-lg shadow-md"
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Hotel Details */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-3xl font-bold">
-                  {language === "ar" ? hotel.nameAr : hotel.name}
-                </h1>
-                {hotel.hasVR && (
+                <h1 className="text-3xl font-bold">{hotel.title}</h1>
+                {hotel.vr_content && (
                   <Badge variant="outline" className="gap-1">
                     <Eye className="h-3 w-3" />
                     VR
@@ -94,16 +204,16 @@ const HotelDetails = () => {
               <div className="flex items-center gap-4 text-muted-foreground mb-4">
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  {language === "ar" ? hotel.locationAr : hotel.location}
+                  {hotel.location}
                 </div>
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  {hotel.rating}
+                  4.8
                 </div>
               </div>
 
-              <p className="text-foreground/80 mb-6">
-                {language === "ar" ? hotel.descriptionAr : hotel.description}
+              <p className="text-foreground/80 mb-6 leading-relaxed">
+                {hotel.description}
               </p>
 
               <div>
@@ -111,7 +221,7 @@ const HotelDetails = () => {
                   {language === "ar" ? "المرافق" : "Amenities"}
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {(language === "ar" ? hotel.amenitiesAr : hotel.amenities).map((amenity, i) => (
+                  {["WiFi", "مسبح", "سبا", "مطعم", "موقف سيارات", "صالة رياضية"].map((amenity, i) => (
                     <Badge key={i} variant="secondary">
                       {amenity}
                     </Badge>
@@ -126,7 +236,7 @@ const HotelDetails = () => {
               <CardContent className="p-6 space-y-6">
                 <div>
                   <div className="text-3xl font-bold text-primary">
-                    ${hotel.pricePerNight}
+                    {hotel.price} {language === "ar" ? "ر.س" : "SAR"}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {language === "ar" ? "لكل ليلة" : "per night"}
@@ -199,14 +309,14 @@ const HotelDetails = () => {
                   <div className="p-4 bg-muted rounded-lg space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>
-                        ${hotel.pricePerNight} × {nights}{" "}
+                        {hotel.price} {language === "ar" ? "ر.س" : "SAR"} × {nights}{" "}
                         {language === "ar" ? "ليالي" : "nights"}
                       </span>
-                      <span>${hotel.pricePerNight * nights}</span>
+                      <span>{hotel.price * nights} {language === "ar" ? "ر.س" : "SAR"}</span>
                     </div>
                     <div className="flex justify-between font-bold text-lg pt-2 border-t">
                       <span>{language === "ar" ? "الإجمالي" : "Total"}</span>
-                      <span className="text-primary">${totalPrice}</span>
+                      <span className="text-primary">{totalPrice} {language === "ar" ? "ر.س" : "SAR"}</span>
                     </div>
                   </div>
                 )}
@@ -216,7 +326,7 @@ const HotelDetails = () => {
                     onClick={handleBookNow}
                     disabled={!checkIn || !checkOut}
                     className="w-full"
-                    variant="hero"
+                    size="lg"
                   >
                     {language === "ar" ? "احجز الآن" : "Book Now"}
                   </Button>
@@ -234,7 +344,7 @@ const HotelDetails = () => {
             </Card>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

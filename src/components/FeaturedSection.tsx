@@ -4,9 +4,11 @@ import { Plane, Hotel, Compass, Sparkles } from "lucide-react";
 import hotelImage from "@/assets/hotel-luxury.jpg";
 import activitiesImage from "@/assets/activities.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useNavigate } from "react-router-dom";
 
 export const FeaturedSection = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   
   const features = [
     {
@@ -15,6 +17,7 @@ export const FeaturedSection = () => {
       description: "Find the best deals on flights across Saudi Arabia and beyond",
       image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop",
       gradient: "from-terracotta to-sandy-gold",
+      link: "/flights",
     },
     {
       icon: Hotel,
@@ -22,6 +25,7 @@ export const FeaturedSection = () => {
       description: t('featured.luxuryDesc'),
       image: hotelImage,
       gradient: "from-warm-beige to-desert-sand",
+      link: "/search",
     },
     {
       icon: Compass,
@@ -29,6 +33,7 @@ export const FeaturedSection = () => {
       description: t('featured.activitiesDesc'),
       image: activitiesImage,
       gradient: "from-deep-brown to-terracotta",
+      link: "/search",
     },
     {
       icon: Sparkles,
@@ -36,6 +41,7 @@ export const FeaturedSection = () => {
       description: "Let AI create your perfect itinerary based on your preferences",
       image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop",
       gradient: "from-sandy-gold to-warm-beige",
+      link: "/trip-planner",
     },
   ];
 
@@ -71,7 +77,11 @@ export const FeaturedSection = () => {
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm mb-4">{feature.description}</p>
-                <Button variant="ghost" className="w-full group-hover:text-primary">
+                <Button 
+                  variant="ghost" 
+                  className="w-full group-hover:text-primary"
+                  onClick={() => navigate(feature.link)}
+                >
                   {t('featured.explore')} →
                 </Button>
               </CardContent>
