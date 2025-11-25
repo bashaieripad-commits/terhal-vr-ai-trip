@@ -74,7 +74,7 @@ const Analytics = () => {
               <span className="font-semibold">30%</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>الأنشطة والفعاليات</span>
+              <span>الفعاليات</span>
               <span className="font-semibold">25%</span>
             </div>
           </div>
