@@ -186,76 +186,51 @@ const Checkout = () => {
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
                   <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
                     <RadioGroupItem value="apple" id="apple" />
-                    <Label htmlFor="apple" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
-                        <span className="text-white text-xl">🍎</span>
-                      </div>
-                      <div>
-                        <div className="font-semibold">Apple Pay</div>
-                        <div className="text-xs text-muted-foreground">
-                          {language === "ar" ? "دفع سريع وآمن" : "Fast and secure"}
-                        </div>
+                    <Label htmlFor="apple" className="cursor-pointer flex-1">
+                      <div className="font-semibold">Apple Pay</div>
+                      <div className="text-xs text-muted-foreground">
+                        {language === "ar" ? "دفع سريع وآمن" : "Fast and secure"}
                       </div>
                     </Label>
                   </div>
 
                   <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
                     <RadioGroupItem value="google" id="google" />
-                    <Label htmlFor="google" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <div className="w-10 h-10 bg-white border rounded-lg flex items-center justify-center">
-                        <Smartphone className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold">Google Pay</div>
-                        <div className="text-xs text-muted-foreground">
-                          {language === "ar" ? "دفع بنقرة واحدة" : "One-tap payment"}
-                        </div>
+                    <Label htmlFor="google" className="cursor-pointer flex-1">
+                      <div className="font-semibold">Google Pay</div>
+                      <div className="text-xs text-muted-foreground">
+                        {language === "ar" ? "دفع بنقرة واحدة" : "One-tap payment"}
                       </div>
                     </Label>
                   </div>
 
                   <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
                     <RadioGroupItem value="stc" id="stc" />
-                    <Label htmlFor="stc" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                        <Wallet className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <div className="font-semibold">STC Pay</div>
-                        <div className="text-xs text-muted-foreground">
-                          {language === "ar" ? "المحفظة الرقمية" : "Digital wallet"}
-                        </div>
+                    <Label htmlFor="stc" className="cursor-pointer flex-1">
+                      <div className="font-semibold">STC Pay</div>
+                      <div className="text-xs text-muted-foreground">
+                        {language === "ar" ? "المحفظة الرقمية" : "Digital wallet"}
                       </div>
                     </Label>
                   </div>
 
                   <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
                     <RadioGroupItem value="mada" id="mada" />
-                    <Label htmlFor="mada" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
-                        <CreditCard className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <div className="font-semibold">مدى - Mada</div>
-                        <div className="text-xs text-muted-foreground">
-                          {language === "ar" ? "البطاقة السعودية" : "Saudi card network"}
-                        </div>
+                    <Label htmlFor="mada" className="cursor-pointer flex-1">
+                      <div className="font-semibold">مدى - Mada</div>
+                      <div className="text-xs text-muted-foreground">
+                        {language === "ar" ? "البطاقة السعودية" : "Saudi card network"}
                       </div>
                     </Label>
                   </div>
 
                   <div className="flex items-center space-x-2 rtl:space-x-reverse border-2 rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer">
                     <RadioGroupItem value="card" id="card" />
-                    <Label htmlFor="card" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
-                        <CreditCard className="h-6 w-6 text-white" />
+                    <Label htmlFor="card" className="cursor-pointer flex-1">
+                      <div className="font-semibold">
+                        {language === "ar" ? "بطاقة ائتمان" : "Credit/Debit Card"}
                       </div>
-                      <div>
-                        <div className="font-semibold">
-                          {language === "ar" ? "بطاقة ائتمان" : "Credit/Debit Card"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Visa, Mastercard</div>
-                      </div>
+                      <div className="text-xs text-muted-foreground">Visa, Mastercard</div>
                     </Label>
                   </div>
                 </RadioGroup>
