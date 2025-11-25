@@ -20,6 +20,10 @@ interface ContentItem {
   price: number;
   images: string[];
   vr_content: string | null;
+  flight_number?: string;
+  airline?: string;
+  departure_time?: string;
+  arrival_time?: string;
 }
 
 const SearchResults = () => {
@@ -38,15 +42,25 @@ const SearchResults = () => {
 
   const fetchContent = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch content (hotels, activities)
+      const { data: contentData, error: contentError } = await supabase
         .from("content")
         .select("*")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (contentError) throw contentError;
+
+      // Fetch flights
+      const { data: flightsData, error: flightsError } = await supabase
+        .from("flights")
+        .select("*")
+        .eq("status", "scheduled")
+        .order("departure_time", { ascending: true });
+
+      if (flightsError) throw flightsError;
       
-      const formattedData: ContentItem[] = (data || []).map((item) => ({
+      const formattedContent: ContentItem[] = (contentData || []).map((item) => ({
         id: item.id,
         title: item.title,
         content_type: item.content_type,
@@ -55,9 +69,25 @@ const SearchResults = () => {
         images: Array.isArray(item.images) ? (item.images as string[]) : [],
         vr_content: item.vr_content,
       }));
+
+      const formattedFlights: ContentItem[] = (flightsData || []).map((flight) => ({
+        id: flight.id,
+        title: `${flight.from_city} - ${flight.to_city}`,
+        content_type: "flight",
+        location: `${flight.from_city} إلى ${flight.to_city}`,
+        price: flight.base_price,
+        images: ["https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop"],
+        vr_content: null,
+        flight_number: flight.flight_number,
+        airline: flight.airline,
+        departure_time: flight.departure_time,
+        arrival_time: flight.arrival_time,
+      }));
+
+      const allData = [...formattedContent, ...formattedFlights];
       
-      setAllResults(formattedData);
-      setResults(formattedData);
+      setAllResults(allData);
+      setResults(allData);
     } catch (error) {
       console.error("Error fetching content:", error);
       toast.error(language === "ar" ? "خطأ في تحميل البيانات" : "Error loading data");
@@ -104,6 +134,8 @@ const SearchResults = () => {
       navigate(`/hotel/${item.id}`);
     } else if (item.content_type === "activity") {
       navigate(`/activity/${item.id}`);
+    } else if (item.content_type === "flight") {
+      navigate(`/flight/${item.id}/seats`);
     } else {
       toast.info(language === "ar" ? "قريباً" : "Coming soon");
     }
