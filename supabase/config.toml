@@ -1,1 +1,4 @@
 project_id = "kreqygsuqmpqwyfewcje"
+
+[functions.ai-trip-planner]
+verify_jwt = false
