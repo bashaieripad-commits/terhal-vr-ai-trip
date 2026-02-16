@@ -4,6 +4,7 @@ import { FeaturedSection } from "@/components/FeaturedSection";
 import { VRViewer } from "@/components/VRViewer";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Eye, Shield, Bell, ArrowDown, Star, MapPin, Plane } from "lucide-react";
+import { Testimonials } from "@/components/Testimonials";
 import heroImage from "@/assets/hero-desert.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -289,6 +290,9 @@ const Index = () => {
             </motion.div>
           </div>
         </section>
+
+        {/* Testimonials */}
+        <Testimonials />
       </main>
 
       {/* CTA Section */}
