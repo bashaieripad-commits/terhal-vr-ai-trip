@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Calendar, User, Menu, Languages, Tent, ShoppingCart } from "lucide-react";
+import { Search, Calendar, User, Menu, Languages, Tent, ShoppingCart, Ticket } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
@@ -20,6 +20,7 @@ export const Navbar = () => {
     { to: "/", label: t('nav.home'), icon: Tent },
     { to: "/search", label: t('nav.search'), icon: Search },
     { to: "/trip-planner", label: t('nav.tripPlanner'), icon: Calendar },
+    { to: "/my-tickets", label: language === "ar" ? "تذاكري" : "My Tickets", icon: Ticket },
   ];
 
   return (
