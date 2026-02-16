@@ -4,13 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Star, Eye, MapPin, ShoppingCart } from "lucide-react";
+import { Star, Eye, MapPin, ShoppingCart, Search, SlidersHorizontal } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 interface ContentItem {
   id: string;
@@ -35,6 +36,7 @@ const SearchResults = () => {
   const [allResults, setAllResults] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchContent();
@@ -42,50 +44,37 @@ const SearchResults = () => {
 
   const fetchContent = async () => {
     try {
-      // Fetch content (hotels, activities)
       const { data: contentData, error: contentError } = await supabase
         .from("content")
         .select("*")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
-
       if (contentError) throw contentError;
 
-      // Fetch flights
       const { data: flightsData, error: flightsError } = await supabase
         .from("flights")
         .select("*")
         .eq("status", "scheduled")
         .order("departure_time", { ascending: true });
-
       if (flightsError) throw flightsError;
       
       const formattedContent: ContentItem[] = (contentData || []).map((item) => ({
-        id: item.id,
-        title: item.title,
-        content_type: item.content_type,
-        location: item.location || "",
-        price: item.price || 0,
+        id: item.id, title: item.title, content_type: item.content_type,
+        location: item.location || "", price: item.price || 0,
         images: Array.isArray(item.images) ? (item.images as string[]) : [],
         vr_content: item.vr_content,
       }));
 
       const formattedFlights: ContentItem[] = (flightsData || []).map((flight) => ({
-        id: flight.id,
-        title: `${flight.from_city} - ${flight.to_city}`,
-        content_type: "flight",
-        location: `${flight.from_city} إلى ${flight.to_city}`,
+        id: flight.id, title: `${flight.from_city} - ${flight.to_city}`,
+        content_type: "flight", location: `${flight.from_city} إلى ${flight.to_city}`,
         price: flight.base_price,
         images: ["https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop"],
-        vr_content: null,
-        flight_number: flight.flight_number,
-        airline: flight.airline,
-        departure_time: flight.departure_time,
-        arrival_time: flight.arrival_time,
+        vr_content: null, flight_number: flight.flight_number, airline: flight.airline,
+        departure_time: flight.departure_time, arrival_time: flight.arrival_time,
       }));
 
       const allData = [...formattedContent, ...formattedFlights];
-      
       setAllResults(allData);
       setResults(allData);
     } catch (error) {
@@ -98,228 +87,193 @@ const SearchResults = () => {
 
   const handleTypeFilter = (type: string) => {
     setSelectedTypes((prev) => {
-      if (type === "all") {
-        return ["all"];
-      }
-      
+      if (type === "all") return ["all"];
       let newTypes = prev.filter((t) => t !== "all");
-      
-      if (newTypes.includes(type)) {
-        newTypes = newTypes.filter((t) => t !== type);
-      } else {
-        newTypes.push(type);
-      }
-      
-      if (newTypes.length === 0) {
-        return ["all"];
-      }
-      
-      return newTypes;
+      if (newTypes.includes(type)) newTypes = newTypes.filter((t) => t !== type);
+      else newTypes.push(type);
+      return newTypes.length === 0 ? ["all"] : newTypes;
     });
   };
 
   useEffect(() => {
-    if (selectedTypes.includes("all")) {
-      setResults(allResults);
-    } else {
-      const filtered = allResults.filter((item) =>
-        selectedTypes.includes(item.content_type)
-      );
-      setResults(filtered);
-    }
+    if (selectedTypes.includes("all")) setResults(allResults);
+    else setResults(allResults.filter((item) => selectedTypes.includes(item.content_type)));
   }, [selectedTypes, allResults]);
 
   const handleViewDetails = (item: ContentItem) => {
-    if (item.content_type === "hotel") {
-      navigate(`/hotel/${item.id}`);
-    } else if (item.content_type === "activity") {
-      navigate(`/activity/${item.id}`);
-    } else if (item.content_type === "flight") {
-      navigate(`/flight/${item.id}/seats`);
-    } else {
-      toast.info(language === "ar" ? "قريباً" : "Coming soon");
-    }
+    if (item.content_type === "hotel") navigate(`/hotel/${item.id}`);
+    else if (item.content_type === "activity") navigate(`/activity/${item.id}`);
+    else if (item.content_type === "flight") navigate(`/flight/${item.id}/seats`);
+    else toast.info(language === "ar" ? "قريباً" : "Coming soon");
   };
+
+  const typeFilters = [
+    { value: "all", label: language === "ar" ? "الكل" : "All" },
+    { value: "hotel", label: language === "ar" ? "فنادق" : "Hotels" },
+    { value: "flight", label: language === "ar" ? "رحلات" : "Flights" },
+    { value: "activity", label: language === "ar" ? "فعاليات" : "Events" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container py-8 px-4">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <aside className="lg:w-80 space-y-6">
-            <Card>
-              <CardContent className="p-6 space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    Filter Results
-                  </h3>
-                </div>
+        {/* Header */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <h1 className="text-4xl md:text-5xl font-bold mb-3">
+            {language === "ar" ? "نتائج البحث" : "Search Results"}
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            {language === "ar" 
+              ? `تم العثور على ${results.length} نتيجة`
+              : `Found ${results.length} results`}
+          </p>
+        </motion.div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Search</label>
-                  <Input placeholder="Filter by name..." />
-                </div>
+        {/* Filter chips */}
+        <motion.div 
+          className="flex flex-wrap items-center gap-3 mb-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          {typeFilters.map((type) => (
+            <button
+              key={type.value}
+              onClick={() => handleTypeFilter(type.value)}
+              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                selectedTypes.includes(type.value)
+                  ? "bg-primary text-primary-foreground shadow-[var(--shadow-md)]"
+                  : "bg-card border border-border hover:border-primary/50 text-foreground"
+              }`}
+            >
+              {type.label}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-5 py-2.5 rounded-full text-sm font-medium bg-card border border-border hover:border-primary/50 text-foreground flex items-center gap-2 transition-all"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            {language === "ar" ? "فلتر" : "Filter"}
+          </button>
+        </motion.div>
 
-                <div className="space-y-4">
-                  <label className="text-sm font-medium">Price Range</label>
-                  <Slider
-                    value={priceRange}
-                    onValueChange={setPriceRange}
-                    max={1000}
-                    step={50}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>${priceRange[0]}</span>
-                    <span>${priceRange[1]}</span>
+        {/* Expandable filter panel */}
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-8"
+          >
+            <Card className="border-2 border-primary/10">
+              <CardContent className="p-6">
+                <div className="grid gap-6 md:grid-cols-3">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">{language === "ar" ? "بحث" : "Search"}</label>
+                    <Input placeholder={language === "ar" ? "بحث بالاسم..." : "Filter by name..."} className="rounded-xl h-11" />
+                  </div>
+                  <div className="space-y-3 md:col-span-2">
+                    <label className="text-sm font-medium">{language === "ar" ? "نطاق السعر" : "Price Range"}</label>
+                    <Slider value={priceRange} onValueChange={setPriceRange} max={5000} step={100} className="w-full" />
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>{priceRange[0]} {language === "ar" ? "ر.س" : "SAR"}</span>
+                      <span>{priceRange[1]} {language === "ar" ? "ر.س" : "SAR"}</span>
+                    </div>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    {language === "ar" ? "النوع" : "Type"}
-                  </label>
-                  <div className="space-y-2">
-                    {[
-                      { value: "all", label: language === "ar" ? "الكل" : "All" },
-                      { value: "hotel", label: language === "ar" ? "فنادق" : "Hotels" },
-                      { value: "flight", label: language === "ar" ? "رحلات" : "Flights" },
-                      { value: "activity", label: language === "ar" ? "فعاليات" : "Events" },
-                    ].map((type) => (
-                      <label key={type.value} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="rounded"
-                          checked={selectedTypes.includes(type.value)}
-                          onChange={() => handleTypeFilter(type.value)}
-                        />
-                        <span className="text-sm">{type.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input type="checkbox" className="rounded" />
-                    <Eye className="h-4 w-4 text-primary" />
-                    <span className="text-sm">VR Available Only</span>
-                  </label>
-                </div>
-
-                <Button variant="hero" className="w-full">
-                  Apply Filters
-                </Button>
               </CardContent>
             </Card>
-          </aside>
+          </motion.div>
+        )}
 
-          {/* Results Grid */}
-          <main className="flex-1">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold mb-2">
-                {language === "ar" ? "نتائج البحث" : "Search Results"}
-              </h1>
-              <p className="text-muted-foreground">
-                {language === "ar" 
-                  ? `تم العثور على ${results.length} نتيجة`
-                  : `Found ${results.length} results`}
-              </p>
-            </div>
-
-            {loading ? (
-              <div className="text-center py-12">
+        {/* Results */}
+        {loading ? (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-80 rounded-2xl bg-muted animate-pulse" />
+            ))}
+          </div>
+        ) : results.length === 0 ? (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+            <Card className="border-2">
+              <CardContent className="py-16 text-center">
+                <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                <h3 className="text-2xl font-bold mb-2">
+                  {language === "ar" ? "لا توجد نتائج" : "No results found"}
+                </h3>
                 <p className="text-muted-foreground">
-                  {language === "ar" ? "جاري التحميل..." : "Loading..."}
+                  {language === "ar" ? "جرب البحث بمعايير أخرى" : "Try different search criteria"}
                 </p>
-              </div>
-            ) : results.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <h3 className="text-xl font-semibold mb-2">
-                    {language === "ar" ? "لا توجد نتائج" : "No results found"}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {language === "ar" ? "جرب البحث بمعايير أخرى" : "Try different search criteria"}
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {results.map((result) => (
-                  <Card
-                    key={result.id}
-                    className="overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-300 hover:-translate-y-1"
-                  >
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={result.images[0] || "/placeholder.svg"}
-                        alt={result.title}
-                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-                      />
-                      {result.vr_content && (
-                        <Badge className="absolute top-2 right-2 bg-primary">
-                          <Eye className="h-3 w-3 mr-1" />
-                          VR
-                        </Badge>
-                      )}
-                      <Badge className="absolute top-2 left-2 bg-secondary text-secondary-foreground">
-                        {language === "ar" 
-                          ? (result.content_type === "hotel" ? "فندق" : 
-                             result.content_type === "activity" ? "فعالية" : 
-                             result.content_type === "flight" ? "رحلة" : result.content_type)
-                          : (result.content_type === "activity" ? "Event" : result.content_type)}
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {results.map((result, i) => (
+              <motion.div
+                key={result.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.05 }}
+              >
+                <Card
+                  className="group overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-500 hover:-translate-y-2 border-border/50 cursor-pointer h-full"
+                  onClick={() => handleViewDetails(result)}
+                >
+                  <div className="relative h-52 overflow-hidden">
+                    <img
+                      src={result.images[0] || "/placeholder.svg"}
+                      alt={result.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-deep-brown/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    {result.vr_content && (
+                      <Badge className="absolute top-3 right-3 bg-primary/90 backdrop-blur-sm gap-1">
+                        <Eye className="h-3 w-3" /> VR
                       </Badge>
+                    )}
+                    <Badge className="absolute top-3 left-3 rtl:left-auto rtl:right-3 bg-card/90 backdrop-blur-sm text-foreground border-0">
+                      {language === "ar" 
+                        ? (result.content_type === "hotel" ? "فندق" : 
+                           result.content_type === "activity" ? "فعالية" : 
+                           result.content_type === "flight" ? "رحلة" : result.content_type)
+                        : (result.content_type === "activity" ? "Event" : result.content_type)}
+                    </Badge>
+                  </div>
+                  <CardContent className="p-5 space-y-3">
+                    <div>
+                      <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{result.title}</h3>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                        <MapPin className="h-3 w-3" />
+                        {result.location}
+                      </p>
                     </div>
-                    <CardContent className="p-4 space-y-3">
-                      <div>
-                        <h3 className="font-bold text-lg">{result.title}</h3>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {result.location}
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 fill-sandy-gold text-sandy-gold" />
+                        <span className="font-semibold text-sm">4.8</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-primary">
+                          {result.price} <span className="text-sm font-normal text-muted-foreground">{language === "ar" ? "ر.س" : "SAR"}</span>
                         </p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-semibold">4.8</span>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-primary">
-                            {result.price} {language === "ar" ? "ر.س" : "SAR"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {result.content_type === "hotel" 
-                              ? (language === "ar" ? "لكل ليلة" : "per night")
-                              : (language === "ar" ? "للشخص" : "per person")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          className="flex-1" 
-                          variant="outline"
-                          onClick={() => handleViewDetails(result)}
-                        >
-                          {language === "ar" ? "التفاصيل" : "Details"}
-                        </Button>
-                        <Button 
-                          className="flex-1"
-                          onClick={() => handleViewDetails(result)}
-                        >
-                          {language === "ar" ? "احجز الآن" : "Book Now"}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </main>
-        </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
