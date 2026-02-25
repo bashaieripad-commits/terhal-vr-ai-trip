@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { motion, type Variants } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Ticket,
   Plane,
@@ -18,13 +22,13 @@ import {
   ArrowRightLeft,
   DollarSign,
   Search,
-  Filter,
   CheckCircle,
   XCircle,
   AlertCircle,
   Tag,
   Users,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 
 const fadeUp: Variants = {
@@ -36,113 +40,154 @@ const fadeUp: Variants = {
   }),
 };
 
-// Mock data
-const mockBookings = [
-  {
-    id: "1",
-    type: "flight" as const,
-    name: "الرياض → جدة",
-    nameEn: "Riyadh → Jeddah",
-    date: "2026-03-15",
-    time: "08:30",
-    location: "مطار الملك خالد الدولي",
-    locationEn: "King Khalid International Airport",
-    status: "confirmed" as const,
-    ticketNumber: "TR-FL-2026-001",
-    price: 450,
-    qrCode: true,
-    resellable: true,
-  },
-  {
-    id: "2",
-    type: "hotel" as const,
-    name: "فندق الريتز كارلتون",
-    nameEn: "The Ritz-Carlton Hotel",
-    date: "2026-03-15",
-    time: "14:00",
-    location: "جدة، المملكة العربية السعودية",
-    locationEn: "Jeddah, Saudi Arabia",
-    status: "confirmed" as const,
-    ticketNumber: "TR-HT-2026-002",
-    price: 1200,
-    nights: 3,
-    qrCode: true,
-    resellable: true,
-  },
-  {
-    id: "3",
-    type: "activity" as const,
-    name: "رحلة صحراوية",
-    nameEn: "Desert Safari Tour",
-    date: "2026-03-17",
-    time: "16:00",
-    location: "الربع الخالي",
-    locationEn: "Rub' al Khali",
-    status: "pending" as const,
-    ticketNumber: "TR-EV-2026-003",
-    price: 350,
-    qrCode: false,
-    resellable: false,
-  },
-  {
-    id: "4",
-    type: "flight" as const,
-    name: "جدة → الرياض",
-    nameEn: "Jeddah → Riyadh",
-    date: "2026-03-20",
-    time: "18:00",
-    location: "مطار الملك عبدالعزيز الدولي",
-    locationEn: "King Abdulaziz International Airport",
-    status: "cancelled" as const,
-    ticketNumber: "TR-FL-2026-004",
-    price: 500,
-    qrCode: false,
-    resellable: false,
-  },
-];
+interface Reservation {
+  id: string;
+  type: string;
+  item_name: string;
+  status: string;
+  total_price: number | null;
+  check_in: string | null;
+  check_out: string | null;
+  guests: number | null;
+  details: any;
+  created_at: string | null;
+}
 
-const resaleListings = [
-  {
-    id: "r1",
-    eventName: "حفل موسم الرياض",
-    eventNameEn: "Riyadh Season Concert",
-    date: "2026-04-10",
-    originalPrice: 600,
-    resalePrice: 500,
-    seller: "أحمد م.",
-    sellerEn: "Ahmed M.",
-    discount: 17,
-  },
-  {
-    id: "r2",
-    eventName: "رحلة بحرية - ينبع",
-    eventNameEn: "Cruise Trip - Yanbu",
-    date: "2026-04-05",
-    originalPrice: 800,
-    resalePrice: 650,
-    seller: "سارة ع.",
-    sellerEn: "Sarah A.",
-    discount: 19,
-  },
-  {
-    id: "r3",
-    eventName: "جولة تاريخية - الدرعية",
-    eventNameEn: "Historical Tour - Diriyah",
-    date: "2026-03-28",
-    originalPrice: 250,
-    resalePrice: 200,
-    seller: "محمد ك.",
-    sellerEn: "Mohammed K.",
-    discount: 20,
-  },
-];
+interface TicketRow {
+  id: string;
+  ticket_number: string;
+  event_name: string;
+  event_date: string;
+  is_valid: boolean | null;
+  is_resellable: boolean | null;
+  resell_status: string | null;
+  qr_code: string | null;
+  reservation_id: string | null;
+  user_id: string;
+  created_at: string | null;
+}
 
 const MyTickets = () => {
   const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("bookings");
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [resaleTickets, setResaleTickets] = useState<TicketRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Resell dialog
+  const [resellDialogOpen, setResellDialogOpen] = useState(false);
+  const [selectedTicketForResell, setSelectedTicketForResell] = useState<TicketRow | null>(null);
+  const [resellPrice, setResellPrice] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const isAr = language === "ar";
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        await Promise.all([
+          fetchReservations(user.id),
+          fetchMyTickets(user.id),
+          fetchResaleTickets(),
+        ]);
+      }
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  const fetchReservations = async (uid: string) => {
+    const { data, error } = await supabase
+      .from("reservations")
+      .select("*")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error fetching reservations:", error);
+      return;
+    }
+    setReservations(data || []);
+  };
+
+  const fetchMyTickets = async (uid: string) => {
+    const { data, error } = await supabase
+      .from("tickets")
+      .select("*")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error fetching tickets:", error);
+      return;
+    }
+    setTickets(data || []);
+  };
+
+  const fetchResaleTickets = async () => {
+    const { data, error } = await supabase
+      .from("tickets")
+      .select("*")
+      .eq("is_resellable", true)
+      .eq("resell_status", "listed")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error fetching resale tickets:", error);
+      return;
+    }
+    setResaleTickets(data || []);
+  };
+
+  const handleListForResale = (ticket: TicketRow) => {
+    setSelectedTicketForResell(ticket);
+    setResellPrice("");
+    setResellDialogOpen(true);
+  };
+
+  const handleSubmitResale = async () => {
+    if (!selectedTicketForResell || !resellPrice) return;
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .update({
+          is_resellable: true,
+          resell_status: "listed",
+        })
+        .eq("id", selectedTicketForResell.id);
+
+      if (error) throw error;
+      toast.success(isAr ? "تم عرض التذكرة للبيع بنجاح" : "Ticket listed for resale successfully");
+      setResellDialogOpen(false);
+      if (userId) {
+        await Promise.all([fetchMyTickets(userId), fetchResaleTickets()]);
+      }
+    } catch (error) {
+      console.error("Error listing ticket:", error);
+      toast.error(isAr ? "حدث خطأ أثناء عرض التذكرة" : "Error listing ticket for resale");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancelResale = async (ticketId: string) => {
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .update({ is_resellable: false, resell_status: null })
+        .eq("id", ticketId);
+      if (error) throw error;
+      toast.success(isAr ? "تم إلغاء عرض البيع" : "Resale listing cancelled");
+      if (userId) {
+        await Promise.all([fetchMyTickets(userId), fetchResaleTickets()]);
+      }
+    } catch (error) {
+      toast.error(isAr ? "حدث خطأ" : "An error occurred");
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -168,40 +213,72 @@ const MyTickets = () => {
           </Badge>
         );
       default:
-        return null;
+        return (
+          <Badge variant="secondary">
+            {status}
+          </Badge>
+        );
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case "flight":
-        return <Plane className="w-5 h-5" />;
-      case "hotel":
-        return <Hotel className="w-5 h-5" />;
-      case "activity":
-        return <CalendarDays className="w-5 h-5" />;
-      default:
-        return <Ticket className="w-5 h-5" />;
+      case "flight": return <Plane className="w-5 h-5" />;
+      case "hotel": return <Hotel className="w-5 h-5" />;
+      case "activity": return <CalendarDays className="w-5 h-5" />;
+      default: return <Ticket className="w-5 h-5" />;
     }
   };
 
   const getTypeGradient = (type: string) => {
     switch (type) {
-      case "flight":
-        return "from-blue-500 to-cyan-500";
-      case "hotel":
-        return "from-terracotta to-sandy-gold";
-      case "activity":
-        return "from-emerald-500 to-teal-500";
-      default:
-        return "from-primary to-accent";
+      case "flight": return "from-blue-500 to-cyan-500";
+      case "hotel": return "from-terracotta to-sandy-gold";
+      case "activity": return "from-emerald-500 to-teal-500";
+      default: return "from-primary to-accent";
     }
   };
 
-  const filteredBookings = mockBookings.filter((b) => {
-    const name = isAr ? b.name : b.nameEn;
-    return name.toLowerCase().includes(searchQuery.toLowerCase()) || b.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase());
+  // Combine reservations with their tickets
+  const combinedBookings = reservations.map((res) => {
+    const ticket = tickets.find((t) => t.reservation_id === res.id);
+    return { ...res, ticket };
   });
+
+  const filteredBookings = combinedBookings.filter((b) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      b.item_name.toLowerCase().includes(q) ||
+      (b.ticket?.ticket_number || "").toLowerCase().includes(q)
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+          <Ticket className="w-16 h-16 text-muted-foreground" />
+          <h2 className="text-2xl font-bold">{isAr ? "يرجى تسجيل الدخول" : "Please log in"}</h2>
+          <p className="text-muted-foreground">{isAr ? "سجل دخولك لعرض تذاكرك وحجوزاتك" : "Log in to view your tickets and bookings"}</p>
+          <Button onClick={() => window.location.href = "/auth"} className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90">
+            {isAr ? "تسجيل الدخول" : "Log In"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -212,13 +289,8 @@ const MyTickets = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-terracotta/10 via-sandy-gold/5 to-background" />
         <div className="absolute top-10 right-[10%] w-40 h-40 rounded-full bg-terracotta/10 blur-3xl animate-float" />
         <div className="absolute bottom-10 left-[15%] w-32 h-32 rounded-full bg-sandy-gold/10 blur-2xl animate-float-delayed" />
-
         <div className="container relative z-10 px-4">
-          <motion.div
-            className="text-center space-y-4"
-            initial="hidden"
-            animate="visible"
-          >
+          <motion.div className="text-center space-y-4" initial="hidden" animate="visible">
             <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium">
               <Ticket className="h-4 w-4 text-primary" />
               {isAr ? "إدارة حجوزاتك بسهولة" : "Manage your bookings easily"}
@@ -252,7 +324,6 @@ const MyTickets = () => {
 
           {/* Bookings Tab */}
           <TabsContent value="bookings" className="space-y-6">
-            {/* Search */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="flex gap-3 max-w-lg mx-auto">
               <div className="relative flex-1">
                 <Search className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -266,15 +337,11 @@ const MyTickets = () => {
             </motion.div>
 
             {/* Stats */}
-            <motion.div
-              className="grid grid-cols-3 gap-4 max-w-2xl mx-auto"
-              initial="hidden"
-              animate="visible"
-            >
+            <motion.div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto" initial="hidden" animate="visible">
               {[
-                { value: filteredBookings.filter((b) => b.status === "confirmed").length, label: isAr ? "مؤكد" : "Confirmed", color: "text-emerald-500" },
-                { value: filteredBookings.filter((b) => b.status === "pending").length, label: isAr ? "قيد الانتظار" : "Pending", color: "text-amber-500" },
-                { value: filteredBookings.filter((b) => b.status === "cancelled").length, label: isAr ? "ملغي" : "Cancelled", color: "text-red-500" },
+                { value: reservations.filter((b) => b.status === "confirmed").length, label: isAr ? "مؤكد" : "Confirmed", color: "text-emerald-500" },
+                { value: reservations.filter((b) => b.status === "pending").length, label: isAr ? "قيد الانتظار" : "Pending", color: "text-amber-500" },
+                { value: reservations.filter((b) => b.status === "cancelled").length, label: isAr ? "ملغي" : "Cancelled", color: "text-red-500" },
               ].map((stat, i) => (
                 <motion.div key={i} variants={fadeUp} custom={i} className="text-center p-4 rounded-xl bg-card border border-border/50">
                   <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
@@ -284,76 +351,88 @@ const MyTickets = () => {
             </motion.div>
 
             {/* Booking Cards */}
-            <motion.div className="grid gap-4 max-w-3xl mx-auto" initial="hidden" animate="visible">
-              {filteredBookings.map((booking, i) => (
-                <motion.div key={booking.id} variants={fadeUp} custom={i}>
-                  <Card className="overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-300 group">
-                    <div className="flex flex-col sm:flex-row">
-                      {/* Type indicator */}
-                      <div className={`sm:w-2 w-full h-2 sm:h-auto bg-gradient-to-b ${getTypeGradient(booking.type)}`} />
-                      <CardContent className="flex-1 p-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-start gap-4">
-                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getTypeGradient(booking.type)} flex items-center justify-center text-white shrink-0`}>
-                              {getTypeIcon(booking.type)}
-                            </div>
-                            <div className="space-y-1">
-                              <h3 className="font-bold text-lg">{isAr ? booking.name : booking.nameEn}</h3>
-                              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3.5 h-3.5" />
-                                  {isAr ? booking.location : booking.locationEn}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <CalendarDays className="w-3.5 h-3.5" />
-                                  {new Date(booking.date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  {booking.time}
-                                </span>
+            {filteredBookings.length === 0 ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 space-y-4">
+                <Ticket className="w-16 h-16 mx-auto text-muted-foreground/40" />
+                <h3 className="text-xl font-semibold text-muted-foreground">{isAr ? "لا توجد حجوزات بعد" : "No bookings yet"}</h3>
+                <p className="text-sm text-muted-foreground">{isAr ? "ابدأ بحجز رحلتك القادمة!" : "Start by booking your next trip!"}</p>
+              </motion.div>
+            ) : (
+              <motion.div className="grid gap-4 max-w-3xl mx-auto" initial="hidden" animate="visible">
+                {filteredBookings.map((booking, i) => (
+                  <motion.div key={booking.id} variants={fadeUp} custom={i}>
+                    <Card className="overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-300 group">
+                      <div className="flex flex-col sm:flex-row">
+                        <div className={`sm:w-2 w-full h-2 sm:h-auto bg-gradient-to-b ${getTypeGradient(booking.type)}`} />
+                        <CardContent className="flex-1 p-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
+                              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getTypeGradient(booking.type)} flex items-center justify-center text-white shrink-0`}>
+                                {getTypeIcon(booking.type)}
                               </div>
-                              <div className="flex items-center gap-2 pt-1">
-                                <span className="font-mono text-xs text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded">
-                                  {booking.ticketNumber}
-                                </span>
-                                {getStatusBadge(booking.status)}
+                              <div className="space-y-1">
+                                <h3 className="font-bold text-lg">{booking.item_name}</h3>
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                  {booking.check_in && (
+                                    <span className="flex items-center gap-1">
+                                      <CalendarDays className="w-3.5 h-3.5" />
+                                      {new Date(booking.check_in).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
+                                    </span>
+                                  )}
+                                  {booking.check_out && (
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-3.5 h-3.5" />
+                                      {isAr ? "حتى" : "to"} {new Date(booking.check_out).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 pt-1">
+                                  {booking.ticket && (
+                                    <span className="font-mono text-xs text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded">
+                                      {booking.ticket.ticket_number}
+                                    </span>
+                                  )}
+                                  {getStatusBadge(booking.status)}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="flex flex-col items-end gap-2 shrink-0">
-                            <div className="text-xl font-bold text-primary">{booking.price} {isAr ? "ر.س" : "SAR"}</div>
-                            {booking.nights && (
-                              <span className="text-xs text-muted-foreground">{booking.nights} {isAr ? "ليالي" : "nights"}</span>
-                            )}
-                            <div className="flex gap-2">
-                              {booking.qrCode && (
-                                <Button size="sm" variant="outline" className="rounded-lg text-xs">
-                                  <QrCode className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
-                                  {isAr ? "QR" : "QR Code"}
-                                </Button>
-                              )}
-                              {booking.resellable && booking.status === "confirmed" && (
-                                <Button size="sm" variant="default" className="rounded-lg text-xs bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90">
-                                  <ArrowRightLeft className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
-                                  {isAr ? "إعادة بيع" : "Resell"}
-                                </Button>
-                              )}
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <div className="text-xl font-bold text-primary">{booking.total_price || 0} {isAr ? "ر.س" : "SAR"}</div>
+                              <div className="flex gap-2">
+                                {booking.ticket?.qr_code && (
+                                  <Button size="sm" variant="outline" className="rounded-lg text-xs">
+                                    <QrCode className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+                                    QR
+                                  </Button>
+                                )}
+                                {booking.ticket && booking.status === "confirmed" && (
+                                  booking.ticket.resell_status === "listed" ? (
+                                    <Button size="sm" variant="outline" className="rounded-lg text-xs border-red-300 text-red-500" onClick={() => handleCancelResale(booking.ticket!.id)}>
+                                      <XCircle className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+                                      {isAr ? "إلغاء البيع" : "Cancel"}
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" variant="default" className="rounded-lg text-xs bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90" onClick={() => handleListForResale(booking.ticket!)}>
+                                      <ArrowRightLeft className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+                                      {isAr ? "إعادة بيع" : "Resell"}
+                                    </Button>
+                                  )
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
+                        </CardContent>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
           </TabsContent>
 
           {/* Resale Tab */}
           <TabsContent value="resale" className="space-y-8">
-            {/* Resale Info Banner */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="border-primary/20 bg-gradient-to-r from-terracotta/5 via-sandy-gold/5 to-transparent">
                 <CardContent className="p-6">
@@ -377,9 +456,9 @@ const MyTickets = () => {
             {/* Resale Stats */}
             <motion.div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto" initial="hidden" animate="visible">
               {[
-                { icon: Tag, value: resaleListings.length, label: isAr ? "تذاكر متاحة" : "Available", gradient: "from-terracotta to-sandy-gold" },
-                { icon: Users, value: "150+", label: isAr ? "بائع نشط" : "Active Sellers", gradient: "from-blue-500 to-cyan-500" },
-                { icon: DollarSign, value: "20%", label: isAr ? "متوسط الخصم" : "Avg. Discount", gradient: "from-emerald-500 to-teal-500" },
+                { icon: Tag, value: resaleTickets.length, label: isAr ? "تذاكر متاحة" : "Available", gradient: "from-terracotta to-sandy-gold" },
+                { icon: Users, value: new Set(resaleTickets.map(t => t.user_id)).size, label: isAr ? "بائع نشط" : "Active Sellers", gradient: "from-blue-500 to-cyan-500" },
+                { icon: DollarSign, value: resaleTickets.length > 0 ? "20%" : "0%", label: isAr ? "متوسط الخصم" : "Avg. Discount", gradient: "from-emerald-500 to-teal-500" },
               ].map((stat, i) => (
                 <motion.div key={i} variants={fadeUp} custom={i} className="text-center p-5 rounded-xl bg-card border border-border/50 hover:shadow-[var(--shadow-md)] transition-shadow">
                   <div className={`w-10 h-10 mx-auto mb-2 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center text-white`}>
@@ -394,53 +473,49 @@ const MyTickets = () => {
             {/* Resale Listings */}
             <div className="max-w-3xl mx-auto space-y-4">
               <h3 className="font-bold text-lg">{isAr ? "تذاكر معروضة للبيع" : "Tickets For Sale"}</h3>
-              <motion.div className="grid gap-4" initial="hidden" animate="visible">
-                {resaleListings.map((listing, i) => (
-                  <motion.div key={listing.id} variants={fadeUp} custom={i}>
-                    <Card className="overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-300 group">
-                      <CardContent className="p-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="space-y-2">
-                            <h4 className="font-bold text-lg">{isAr ? listing.eventName : listing.eventNameEn}</h4>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <CalendarDays className="w-3.5 h-3.5" />
-                                {new Date(listing.date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Users className="w-3.5 h-3.5" />
-                                {isAr ? listing.seller : listing.sellerEn}
-                              </span>
+              {resaleTickets.length === 0 ? (
+                <div className="text-center py-12 space-y-3">
+                  <Tag className="w-12 h-12 mx-auto text-muted-foreground/40" />
+                  <p className="text-muted-foreground">{isAr ? "لا توجد تذاكر معروضة حالياً" : "No tickets listed for resale currently"}</p>
+                </div>
+              ) : (
+                <motion.div className="grid gap-4" initial="hidden" animate="visible">
+                  {resaleTickets.map((ticket, i) => (
+                    <motion.div key={ticket.id} variants={fadeUp} custom={i}>
+                      <Card className="overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-300">
+                        <CardContent className="p-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="space-y-2">
+                              <h4 className="font-bold text-lg">{ticket.event_name}</h4>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <CalendarDays className="w-3.5 h-3.5" />
+                                  {new Date(ticket.event_date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
+                                </span>
+                                <span className="font-mono text-xs bg-secondary/60 px-2 py-0.5 rounded">{ticket.ticket_number}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 shrink-0">
+                              {ticket.user_id !== userId && (
+                                <Button className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90">
+                                  {isAr ? "اشترِ الآن" : "Buy Now"}
+                                </Button>
+                              )}
+                              {ticket.user_id === userId && (
+                                <Badge variant="outline" className="text-sm">{isAr ? "تذكرتك" : "Your ticket"}</Badge>
+                              )}
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-4 shrink-0">
-                            <div className="text-right rtl:text-left">
-                              <div className="text-xs text-muted-foreground line-through">{listing.originalPrice} {isAr ? "ر.س" : "SAR"}</div>
-                              <div className="text-xl font-bold text-primary">{listing.resalePrice} {isAr ? "ر.س" : "SAR"}</div>
-                              <Badge variant="secondary" className="text-xs bg-emerald-500/15 text-emerald-600">
-                                -{listing.discount}%
-                              </Badge>
-                            </div>
-                            <Button className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90">
-                              {isAr ? "اشترِ الآن" : "Buy Now"}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </motion.div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
             </div>
 
             {/* Sell Your Ticket CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="max-w-3xl mx-auto"
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="max-w-3xl mx-auto">
               <Card className="bg-gradient-to-r from-terracotta/10 to-sandy-gold/10 border-primary/20">
                 <CardContent className="p-8 text-center space-y-4">
                   <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-terracotta to-sandy-gold flex items-center justify-center text-white">
@@ -452,9 +527,13 @@ const MyTickets = () => {
                       ? "أعد بيع تذاكرك بأمان عبر منصتنا. معاملات محمية وسريعة."
                       : "Safely resell your tickets through our platform. Protected and fast transactions."}
                   </p>
-                  <Button size="lg" className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90 px-8">
+                  <Button
+                    size="lg"
+                    className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90 px-8"
+                    onClick={() => setActiveTab("bookings")}
+                  >
                     <Tag className="w-5 h-5 mr-2 rtl:ml-2 rtl:mr-0" />
-                    {isAr ? "اعرض تذكرتك للبيع" : "List Your Ticket"}
+                    {isAr ? "اذهب لحجوزاتك واختر تذكرة" : "Go to bookings & pick a ticket"}
                   </Button>
                 </CardContent>
               </Card>
@@ -462,6 +541,49 @@ const MyTickets = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Resell Dialog */}
+      <Dialog open={resellDialogOpen} onOpenChange={setResellDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isAr ? "عرض التذكرة للبيع" : "List Ticket for Resale"}</DialogTitle>
+          </DialogHeader>
+          {selectedTicketForResell && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-secondary/40 space-y-2">
+                <p className="font-semibold">{selectedTicketForResell.event_name}</p>
+                <p className="text-sm text-muted-foreground font-mono">{selectedTicketForResell.ticket_number}</p>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(selectedTicketForResell.event_date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>{isAr ? "سعر البيع (ر.س)" : "Resale Price (SAR)"}</Label>
+                <Input
+                  type="number"
+                  placeholder={isAr ? "أدخل السعر المطلوب" : "Enter desired price"}
+                  value={resellPrice}
+                  onChange={(e) => setResellPrice(e.target.value)}
+                  className="rounded-xl"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResellDialogOpen(false)} className="rounded-xl">
+              {isAr ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={handleSubmitResale}
+              disabled={!resellPrice || submitting}
+              className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90"
+            >
+              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isAr ? "تأكيد العرض" : "Confirm Listing"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
