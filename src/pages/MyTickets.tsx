@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { motion, type Variants } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { QRCodeCanvas } from "qrcode.react";
+import { useCallback, useRef } from "react";
 import {
   Ticket,
   Plane,
@@ -69,6 +71,7 @@ interface TicketRow {
 
 const MyTickets = () => {
   const { language } = useLanguage();
+  const isAr = language === "ar";
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("bookings");
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -83,7 +86,74 @@ const MyTickets = () => {
   const [resellPrice, setResellPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const isAr = language === "ar";
+  // QR dialog
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrTicket, setQrTicket] = useState<{ ticketNumber: string; eventName: string; date: string; bookingName: string } | null>(null);
+  const qrRef = useRef<HTMLDivElement>(null);
+
+  const handleShowQR = useCallback((ticket: TicketRow | undefined, bookingName: string) => {
+    if (!ticket) return;
+    setQrTicket({
+      ticketNumber: ticket.ticket_number,
+      eventName: ticket.event_name,
+      date: ticket.event_date,
+      bookingName,
+    });
+    setQrDialogOpen(true);
+  }, []);
+
+  const handleDownloadQR = useCallback(() => {
+    if (!qrRef.current) return;
+    const canvas = qrRef.current.querySelector("canvas");
+    if (!canvas) return;
+
+    // Create a styled ticket image
+    const exportCanvas = document.createElement("canvas");
+    const ctx = exportCanvas.getContext("2d");
+    if (!ctx) return;
+
+    const padding = 40;
+    const qrSize = canvas.width;
+    const width = qrSize + padding * 2;
+    const height = qrSize + padding * 2 + 120;
+    exportCanvas.width = width;
+    exportCanvas.height = height;
+
+    // Background
+    ctx.fillStyle = "#ffffff";
+    ctx.roundRect(0, 0, width, height, 16);
+    ctx.fill();
+
+    // Header
+    ctx.fillStyle = "#C4956A";
+    ctx.roundRect(0, 0, width, 50, [16, 16, 0, 0]);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 16px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Terhal Ticket", width / 2, 32);
+
+    // QR Code
+    ctx.drawImage(canvas, padding, 60);
+
+    // Ticket number
+    ctx.fillStyle = "#333333";
+    ctx.font = "bold 14px monospace";
+    ctx.fillText(qrTicket?.ticketNumber || "", width / 2, qrSize + 80);
+
+    // Event name
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#666666";
+    ctx.fillText(qrTicket?.bookingName || "", width / 2, qrSize + 105);
+
+    const link = document.createElement("a");
+    link.download = `ticket-${qrTicket?.ticketNumber || "qr"}.png`;
+    link.href = exportCanvas.toDataURL("image/png");
+    link.click();
+
+    toast.success(isAr ? "تم تحميل التذكرة" : "Ticket downloaded");
+  }, [qrTicket, isAr]);
+
 
   useEffect(() => {
     const init = async () => {
@@ -400,8 +470,8 @@ const MyTickets = () => {
                             <div className="flex flex-col items-end gap-2 shrink-0">
                               <div className="text-xl font-bold text-primary">{booking.total_price || 0} {isAr ? "ر.س" : "SAR"}</div>
                               <div className="flex gap-2">
-                                {booking.ticket?.qr_code && (
-                                  <Button size="sm" variant="outline" className="rounded-lg text-xs">
+                                {booking.ticket && booking.status === "confirmed" && (
+                                  <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => handleShowQR(booking.ticket, booking.item_name)}>
                                     <QrCode className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
                                     QR
                                   </Button>
@@ -582,6 +652,42 @@ const MyTickets = () => {
               {isAr ? "تأكيد العرض" : "Confirm Listing"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">{isAr ? "رمز QR للتذكرة" : "Ticket QR Code"}</DialogTitle>
+          </DialogHeader>
+          {qrTicket && (
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div ref={qrRef} className="p-4 bg-white rounded-xl">
+                <QRCodeCanvas
+                  value={JSON.stringify({
+                    ticket: qrTicket.ticketNumber,
+                    event: qrTicket.eventName,
+                    date: qrTicket.date,
+                  })}
+                  size={200}
+                  level="H"
+                  includeMargin
+                />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="font-mono text-sm font-bold">{qrTicket.ticketNumber}</p>
+                <p className="text-sm text-muted-foreground">{qrTicket.bookingName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(qrTicket.date).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
+                </p>
+              </div>
+              <Button onClick={handleDownloadQR} className="w-full rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90">
+                <QrCode className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                {isAr ? "تحميل كصورة" : "Download as Image"}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
