@@ -7,6 +7,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -220,13 +221,17 @@ const TripPlanner = () => {
                         </div>
                       )}
                       <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                           msg.role === "user"
-                            ? "bg-primary text-primary-foreground rounded-ee-md"
-                            : "bg-muted text-foreground rounded-es-md"
+                            ? "bg-primary text-primary-foreground rounded-ee-md whitespace-pre-wrap"
+                            : "bg-muted text-foreground rounded-es-md prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-headings:text-foreground"
                         }`}
                       >
-                        {msg.content}
+                        {msg.role === "assistant" ? (
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        ) : (
+                          msg.content
+                        )}
                       </div>
                       {msg.role === "user" && (
                         <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
