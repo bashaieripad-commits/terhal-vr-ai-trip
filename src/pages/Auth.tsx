@@ -24,6 +24,26 @@ const Auth = () => {
   const [showSignInPass, setShowSignInPass] = useState(false);
   const [showSignUpPass, setShowSignUpPass] = useState(false);
   const [showSignUpConfirm, setShowSignUpConfirm] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setForgotSent(true);
+      toast.success(isRtl ? "تم إرسال رابط إعادة التعيين!" : "Reset link sent!");
+    } catch (error: any) {
+      toast.error(error.message || (isRtl ? "حدث خطأ" : "Something went wrong"));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true);
@@ -119,6 +139,50 @@ const Auth = () => {
             <Card className="shadow-[var(--shadow-lg)] border border-border/60 overflow-hidden backdrop-blur-sm bg-card/80">
               <div className="h-1 bg-gradient-to-r from-primary via-accent to-secondary" />
               <CardContent className="p-6 pt-7">
+                {forgotMode ? (
+                  <div className="space-y-5">
+                    <div className="text-center mb-2">
+                      <h2 className="text-xl font-bold text-foreground mb-1">
+                        {isRtl ? "نسيت كلمة المرور؟" : "Forgot Password?"}
+                      </h2>
+                      <p className="text-muted-foreground text-sm">
+                        {isRtl ? "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة التعيين" : "Enter your email and we'll send you a reset link"}
+                      </p>
+                    </div>
+                    {forgotSent ? (
+                      <div className="text-center py-6 space-y-3">
+                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-2">
+                          <Mail className="h-7 w-7 text-primary" />
+                        </div>
+                        <p className="text-sm text-foreground font-medium">
+                          {isRtl ? "تم إرسال رابط إعادة التعيين!" : "Reset link sent!"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isRtl ? "تحقق من بريدك الإلكتروني" : "Check your email inbox"}
+                        </p>
+                        <Button variant="ghost" className="mt-2" onClick={() => { setForgotMode(false); setForgotSent(false); }}>
+                          {isRtl ? "العودة لتسجيل الدخول" : "Back to Sign In"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleForgotPassword} className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+                            <Mail className="h-4 w-4 text-primary" />
+                            {isRtl ? "البريد الإلكتروني" : "Email"}
+                          </label>
+                          <Input type="email" placeholder="your@email.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className="rounded-xl h-12" />
+                        </div>
+                        <Button type="submit" variant="hero" className="w-full rounded-xl h-12" size="lg" disabled={loading}>
+                          {loading ? (isRtl ? "جاري الإرسال..." : "Sending...") : (isRtl ? "إرسال رابط إعادة التعيين" : "Send Reset Link")}
+                        </Button>
+                        <Button type="button" variant="ghost" className="w-full" onClick={() => setForgotMode(false)}>
+                          {isRtl ? "العودة لتسجيل الدخول" : "Back to Sign In"}
+                        </Button>
+                      </form>
+                    )}
+                  </div>
+                ) : (
                 <Tabs defaultValue="signin" className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-7 rounded-xl p-1 bg-muted/60 h-11">
                     <TabsTrigger value="signin" className="rounded-lg font-medium text-sm data-[state=active]:shadow-[var(--shadow-sm)]">
@@ -140,10 +204,19 @@ const Auth = () => {
                         <Input type="email" placeholder="your@email.com" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} required className="rounded-xl h-12" />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium flex items-center gap-2 text-foreground/80">
-                          <Lock className="h-4 w-4 text-primary" />
-                          {isRtl ? "كلمة المرور" : "Password"}
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+                            <Lock className="h-4 w-4 text-primary" />
+                            {isRtl ? "كلمة المرور" : "Password"}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setForgotMode(true)}
+                            className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                          >
+                            {isRtl ? "نسيت كلمة المرور؟" : "Forgot password?"}
+                          </button>
+                        </div>
                         <PasswordInput value={signInPassword} onChange={setSignInPassword} show={showSignInPass} onToggle={() => setShowSignInPass(!showSignInPass)} />
                       </div>
 
@@ -205,6 +278,7 @@ const Auth = () => {
                     </form>
                   </TabsContent>
                 </Tabs>
+                )}
 
                 {/* Divider + Google */}
                 <div className="mt-7">

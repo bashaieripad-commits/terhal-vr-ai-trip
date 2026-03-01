@@ -16,6 +16,7 @@ import SeatSelection from "./pages/SeatSelection";
 import ActivityDetails from "./pages/ActivityDetails";
 import CreateAdmin from "./pages/CreateAdmin";
 import MyTickets from "./pages/MyTickets";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/create-admin" element={<CreateAdmin />} />
         <Route path="/my-tickets" element={<MyTickets />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
