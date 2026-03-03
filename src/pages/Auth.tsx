@@ -11,6 +11,28 @@ import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
 
+const PasswordInput = ({ value, onChange, show, onToggle, placeholder }: {
+  value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void; placeholder?: string;
+}) => (
+  <div className="relative">
+    <Input
+      type={show ? "text" : "password"}
+      placeholder={placeholder || "••••••••"}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      required
+      className="rounded-xl h-12 pe-12"
+    />
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground hover:text-foreground transition-colors"
+    >
+      {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </button>
+  </div>
+);
+
 const Auth = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -27,6 +49,8 @@ const Auth = () => {
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
+
+  const isRtl = language === "ar";
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,14 +74,14 @@ const Auth = () => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: signInEmail, password: signInPassword });
       if (error) throw error;
-      toast.success(language === "ar" ? "تم تسجيل الدخول بنجاح!" : "Signed in successfully!");
+      toast.success(isRtl ? "تم تسجيل الدخول بنجاح!" : "Signed in successfully!");
       navigate("/");
     } catch (error: any) { toast.error(error.message || "Login failed"); } finally { setLoading(false); }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (signUpPassword !== signUpConfirmPassword) { toast.error(language === "ar" ? "كلمات المرور غير متطابقة" : "Passwords don't match"); return; }
+    if (signUpPassword !== signUpConfirmPassword) { toast.error(isRtl ? "كلمات المرور غير متطابقة" : "Passwords don't match"); return; }
     setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
@@ -65,34 +89,10 @@ const Auth = () => {
         options: { emailRedirectTo: `${window.location.origin}/`, data: { full_name: signUpFullName } }
       });
       if (error) throw error;
-      toast.success(language === "ar" ? "تم إنشاء الحساب بنجاح!" : "Account created!");
+      toast.success(isRtl ? "تم إنشاء الحساب بنجاح!" : "Account created!");
       navigate("/");
     } catch (error: any) { toast.error(error.message || "Signup failed"); } finally { setLoading(false); }
   };
-
-  const isRtl = language === "ar";
-
-  const PasswordInput = ({ value, onChange, show, onToggle, placeholder }: {
-    value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void; placeholder?: string;
-  }) => (
-    <div className="relative">
-      <Input
-        type={show ? "text" : "password"}
-        placeholder={placeholder || "••••••••"}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-        className="rounded-xl h-12 pe-12"
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
