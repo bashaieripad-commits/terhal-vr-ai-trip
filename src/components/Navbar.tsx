@@ -96,7 +96,7 @@ export const Navbar = () => {
               {t('nav.signIn')}
             </Button>
           </Link>
-          <Link to="/auth" className="hidden md:block">
+          <Link to="/auth?tab=signup" className="hidden md:block">
             <Button 
               variant="hero" 
               size="sm"
@@ -162,7 +162,7 @@ export const Navbar = () => {
                       {t('nav.signIn')}
                     </Button>
                   </Link>
-                  <Link to="/auth" onClick={() => setIsOpen(false)}>
+                  <Link to="/auth?tab=signup" onClick={() => setIsOpen(false)}>
                     <Button variant="hero" className="w-full">
                       {t('nav.getStarted')}
                     </Button>

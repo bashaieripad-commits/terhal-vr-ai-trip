@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Lock, User, Shield, Tent, Eye, EyeOff, ArrowRight } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -35,6 +35,7 @@ const PasswordInput = ({ value, onChange, show, onToggle, placeholder }: {
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { language } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [signInEmail, setSignInEmail] = useState("");
@@ -183,7 +184,7 @@ const Auth = () => {
                     )}
                   </div>
                 ) : (
-                <Tabs defaultValue="signin" className="w-full">
+                <Tabs defaultValue={searchParams.get("tab") === "signup" ? "signup" : "signin"} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-7 rounded-xl p-1 bg-muted/60 h-11">
                     <TabsTrigger value="signin" className="rounded-lg font-medium text-sm data-[state=active]:shadow-[var(--shadow-sm)]">
                       {isRtl ? "تسجيل الدخول" : "Sign In"}
