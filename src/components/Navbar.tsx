@@ -2,9 +2,10 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Calendar, User, Menu, Languages, Tent, ShoppingCart, Ticket } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sheet,
   SheetContent,
@@ -13,8 +14,19 @@ import {
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { language, toggleLanguage, t } = useLanguage();
   const { items } = useCart();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const navLinks = [
     { to: "/", label: t('nav.home'), icon: Tent },
@@ -86,25 +98,28 @@ export const Navbar = () => {
           >
             <Languages className="h-5 w-5" />
           </Button>
-          <Link to="/auth" className="hidden md:block">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              aria-label="تسجيل الدخول | Sign in"
-            >
-              <User className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" aria-hidden="true" />
-              {t('nav.signIn')}
-            </Button>
-          </Link>
-          <Link to="/auth?tab=signup" className="hidden md:block">
-            <Button 
-              variant="hero" 
-              size="sm"
-              aria-label="ابدأ الآن | Get started"
-            >
-              {t('nav.getStarted')}
-            </Button>
-          </Link>
+          {isLoggedIn ? (
+            <Link to="/profile" className="hidden md:block">
+              <Button variant="ghost" size="sm" aria-label={language === "ar" ? "ملفي الشخصي" : "My Profile"}>
+                <User className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" aria-hidden="true" />
+                {language === "ar" ? "ملفي" : "Profile"}
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link to="/auth" className="hidden md:block">
+                <Button variant="ghost" size="sm" aria-label="تسجيل الدخول | Sign in">
+                  <User className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" aria-hidden="true" />
+                  {t('nav.signIn')}
+                </Button>
+              </Link>
+              <Link to="/auth?tab=signup" className="hidden md:block">
+                <Button variant="hero" size="sm" aria-label="ابدأ الآن | Get started">
+                  {t('nav.getStarted')}
+                </Button>
+              </Link>
+            </>
+          )}
 
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -156,17 +171,28 @@ export const Navbar = () => {
                     <Languages className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
                     {language === 'ar' ? 'English' : 'العربية'}
                   </Button>
-                  <Link to="/auth" onClick={() => setIsOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <User className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                      {t('nav.signIn')}
-                    </Button>
-                  </Link>
-                  <Link to="/auth?tab=signup" onClick={() => setIsOpen(false)}>
-                    <Button variant="hero" className="w-full">
-                      {t('nav.getStarted')}
-                    </Button>
-                  </Link>
+                  {isLoggedIn ? (
+                    <Link to="/profile" onClick={() => setIsOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start">
+                        <User className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                        {language === 'ar' ? 'ملفي الشخصي' : 'My Profile'}
+                      </Button>
+                    </Link>
+                  ) : (
+                    <>
+                      <Link to="/auth" onClick={() => setIsOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start">
+                          <User className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                          {t('nav.signIn')}
+                        </Button>
+                      </Link>
+                      <Link to="/auth?tab=signup" onClick={() => setIsOpen(false)}>
+                        <Button variant="hero" className="w-full">
+                          {t('nav.getStarted')}
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </nav>
             </SheetContent>
