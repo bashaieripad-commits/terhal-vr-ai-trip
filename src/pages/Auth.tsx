@@ -54,6 +54,16 @@ const Auth = () => {
 
   const isRtl = language === "ar";
 
+  // Redirect if user is already authenticated or becomes authenticated (e.g. after Google OAuth)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate("/", { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
