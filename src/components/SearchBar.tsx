@@ -88,7 +88,7 @@ export const SearchBar = () => {
         <TabsContent value="hotels" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.location')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.location')}</label>
               <Input placeholder={t('search.cityOrHotel')} className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
