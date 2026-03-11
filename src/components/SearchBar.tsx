@@ -92,7 +92,7 @@ export const SearchBar = () => {
               <Input placeholder={t('search.cityOrHotel')} className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.checkIn')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.checkIn')}</label>
               <Input type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
