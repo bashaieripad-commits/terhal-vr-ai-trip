@@ -18,8 +18,8 @@ const translations = {
     'nav.getStarted': 'ابدأ الآن',
     
     // Hero Section
-    'hero.title': 'اكتشف جمال المملكة',
-    'hero.subtitle': 'خطط لرحلتك المثالية مع ترحال ',
+    'hero.title': 'اكتشف جمال السعودية',
+    'hero.subtitle': 'خطط لرحلتك المثالية مع ترحال',
     'hero.cta': 'ابدأ الاستكشاف',
     
     // Search Bar
