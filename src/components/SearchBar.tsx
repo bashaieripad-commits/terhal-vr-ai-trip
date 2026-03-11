@@ -51,7 +51,7 @@ export const SearchBar = () => {
               <Input id="checkout-all" type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label htmlFor="guests-all" className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+              <label htmlFor="guests-all" className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <Users className="h-4 w-4 text-primary" />
                 {t('search.guests')}
               </label>
