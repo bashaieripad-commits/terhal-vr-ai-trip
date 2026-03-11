@@ -43,14 +43,18 @@ const UserManagement = () => {
     if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟")) return;
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userId }
+      });
+
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       
       toast.success("تم حذف المستخدم بنجاح");
       fetchProfiles();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user:", error);
-      toast.error("خطأ في حذف المستخدم");
+      toast.error(error.message || "خطأ في حذف المستخدم");
     }
   };
 
