@@ -97,7 +97,7 @@ export const Testimonials = () => {
             {isAr ? "ماذا يقول عملاؤنا" : "What Our Travelers Say"}
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            {isAr ? "آراء حقيقية من مسافرين حقيقيين" : "Real reviews from real travelers"}
+            {isAr ? "آراء من مسافرين " : "Reviews from travelers"}
           </p>
         </motion.div>
       </div>
