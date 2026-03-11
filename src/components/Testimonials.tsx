@@ -14,9 +14,9 @@ const testimonials = [
   {
     nameAr: "نورة الشمري", nameEn: "Noura Al-Shammari",
     roleAr: "رحالة", roleEn: "Explorer",
-    textAr: "مخطط الرحلات الذكي وفّر عليّ ساعات من البحث. رحلتي للعلا كانت مثالية بفضل ترحال!",
+    textAr: "مخطط الرحلات الذكي وفّر عليّ ساعات من البحث. رحلتي للعلا كانت تجنن بفضل ترحال!",
     textEn: "The AI trip planner saved me hours. My AlUla trip was perfect thanks to Terhal!",
-    rating: 5, avatar: "https://i.pravatar.cc/80?img=5",
+    rating: 5, avatar: "/lovable-uploads/8b6abe8f-4927-4799-822c-00a636c47a5d.jpg",
   },
   {
     nameAr: "عبدالله القحطاني", nameEn: "Abdullah Al-Qahtani",
