@@ -16,11 +16,11 @@ export const SearchBar = () => {
       aria-label="نموذج البحث | Search form"
     >
       <Tabs defaultValue="all" className="w-full" onValueChange={setSearchType}>
-        <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/70 rounded-xl p-1.5 gap-2" role="tablist">
-          <TabsTrigger value="all" className="rounded-lg text-base font-bold py-3 text-muted-foreground/70 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300">{t('search.all')}</TabsTrigger>
-          <TabsTrigger value="flights" className="rounded-lg text-base font-bold py-3 text-muted-foreground/70 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300">{t('search.flights')}</TabsTrigger>
-          <TabsTrigger value="hotels" className="rounded-lg text-base font-bold py-3 text-muted-foreground/70 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300">{t('search.hotels')}</TabsTrigger>
-          <TabsTrigger value="activities" className="rounded-lg text-base font-bold py-3 text-muted-foreground/70 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300">{t('search.activities')}</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 rounded-xl p-1" role="tablist">
+          <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">{t('search.all')}</TabsTrigger>
+          <TabsTrigger value="flights" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">{t('search.flights')}</TabsTrigger>
+          <TabsTrigger value="hotels" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">{t('search.hotels')}</TabsTrigger>
+          <TabsTrigger value="activities" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">{t('search.activities')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4" id="all-search" role="tabpanel">
