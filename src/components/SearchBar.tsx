@@ -75,7 +75,7 @@ export const SearchBar = () => {
               <Input placeholder={t('search.arrivalCity')} className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.date')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.date')}</label>
               <Input type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
           </div>
