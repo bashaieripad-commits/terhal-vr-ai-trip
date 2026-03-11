@@ -205,7 +205,7 @@ const Index = () => {
               key={i}
               custom={i}
               variants={fadeUp}
-              className="glass rounded-xl p-3 text-center shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-shadow bg-[#f4efec]">
+              className="glass rounded-xl p-3 text-center shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-shadow bg-[#f4efec] border-secondary">
               
                 <div className="text-lg mb-0.5">{stat.icon}</div>
                 <div className="text-xl md:text-2xl font-bold text-foreground">{stat.value}</div>
