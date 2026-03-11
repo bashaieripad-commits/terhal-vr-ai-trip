@@ -11,7 +11,7 @@ export const SearchBar = () => {
 
   return (
     <div 
-      className="w-full max-w-4xl mx-auto glass rounded-2xl p-6 shadow-[var(--shadow-lg)]"
+      className="w-full max-w-4xl mx-auto bg-card/95 backdrop-blur-md rounded-2xl p-6 shadow-[var(--shadow-lg)] border border-border/30"
       role="search"
       aria-label="نموذج البحث | Search form"
     >
@@ -26,7 +26,7 @@ export const SearchBar = () => {
         <TabsContent value="all" className="space-y-4" id="all-search" role="tabpanel">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
-              <label htmlFor="destination-all" className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+              <label htmlFor="destination-all" className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
                 {t('search.destination')}
               </label>
@@ -37,21 +37,21 @@ export const SearchBar = () => {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="checkin-all" className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+              <label htmlFor="checkin-all" className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <Calendar className="h-4 w-4 text-primary" />
                 {t('search.checkIn')}
               </label>
               <Input id="checkin-all" type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label htmlFor="checkout-all" className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+              <label htmlFor="checkout-all" className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <Calendar className="h-4 w-4 text-primary" />
                 {t('search.checkOut')}
               </label>
               <Input id="checkout-all" type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label htmlFor="guests-all" className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+              <label htmlFor="guests-all" className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <Users className="h-4 w-4 text-primary" />
                 {t('search.guests')}
               </label>
@@ -67,15 +67,15 @@ export const SearchBar = () => {
         <TabsContent value="flights" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.from')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.from')}</label>
               <Input placeholder={t('search.departureCity')} className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.to')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.to')}</label>
               <Input placeholder={t('search.arrivalCity')} className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.date')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.date')}</label>
               <Input type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
           </div>
@@ -88,15 +88,15 @@ export const SearchBar = () => {
         <TabsContent value="hotels" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.location')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.location')}</label>
               <Input placeholder={t('search.cityOrHotel')} className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.checkIn')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.checkIn')}</label>
               <Input type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.checkOut')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.checkOut')}</label>
               <Input type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
           </div>
@@ -109,11 +109,11 @@ export const SearchBar = () => {
         <TabsContent value="activities" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.location')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.location')}</label>
               <Input placeholder={t('search.whereToExplore')} className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">{t('search.date')}</label>
+              <label className="text-sm font-semibold text-foreground">{t('search.date')}</label>
               <Input type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
           </div>
