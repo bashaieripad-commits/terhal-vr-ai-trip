@@ -42,9 +42,9 @@ const testimonials = [
   {
     nameAr: "ريم المطيري", nameEn: "Reem Al-Mutairi",
     roleAr: "طالبة جامعية", roleEn: "University Student",
-    textAr: "أسعار مناسبة للطلاب وعروض مستمرة. حجزت رحلتي لأبها بسعر ممتاز!",
+    textAr: "أسعار مره مناسبة للطلاب وعروض مستمرة. حجزت رحلتي لأبها بسعر ممتاز!",
     textEn: "Student-friendly prices and constant deals. Booked my Abha trip at a great price!",
-    rating: 5, avatar: "https://i.pravatar.cc/80?img=16",
+    rating: 5, avatar: "/lovable-uploads/8bfe54d7-bd91-4242-84d6-bc6298b4c6b6.jpg",
   },
 ];
 
