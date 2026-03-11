@@ -37,7 +37,7 @@ export const SearchBar = () => {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="checkin-all" className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+              <label htmlFor="checkin-all" className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <Calendar className="h-4 w-4 text-primary" />
                 {t('search.checkIn')}
               </label>
