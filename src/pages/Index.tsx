@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import { useNavigate } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { FeaturedSection } from "@/components/FeaturedSection";
 import { VRViewer } from "@/components/VRViewer";
@@ -23,6 +24,7 @@ const fadeUp: Variants = {
 
 const Index = () => {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const { permission, requestPermission, checkNearbyActivities, shouldNotify, isSupported } = useNotifications({
     enabled: true,
@@ -315,6 +317,7 @@ const Index = () => {
           <Button
             variant="secondary"
             size="lg"
+            onClick={() => navigate("/auth?tab=signup")}
             className="text-lg px-10 py-7 shadow-xl hover:scale-105 transition-transform rounded-2xl font-semibold">
             
             {language === "ar" ? "ابدأ الآن" : "Get Started Today"}
