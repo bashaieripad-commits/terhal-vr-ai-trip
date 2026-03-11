@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { Shield, Loader2 } from "lucide-react";
 
 const CreateAdmin = () => {
-  const [email, setEmail] = useState("tadmin2@gmail.com");
-  const [password, setPassword] = useState("Admin@123456");
+  const [email, setEmail] = useState("admin@tarhal.com");
+  const [password, setPassword] = useState("1234");
   const [loading, setLoading] = useState(false);
 
   const handleCreateAdmin = async () => {
