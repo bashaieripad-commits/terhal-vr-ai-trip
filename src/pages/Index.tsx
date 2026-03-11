@@ -185,7 +185,7 @@ const Index = () => {
       </section>
 
       {/* Quick Stats Bar */}
-      <section className="relative -mt-8 z-20 px-4">
+      <section className="relative mt-4 z-20 px-4">
         <div className="container">
       <motion.div 
             className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto"
