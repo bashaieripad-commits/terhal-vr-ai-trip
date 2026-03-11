@@ -317,6 +317,7 @@ const Index = () => {
           <Button
             variant="secondary"
             size="lg"
+            onClick={() => navigate("/auth?tab=signup")}
             className="text-lg px-10 py-7 shadow-xl hover:scale-105 transition-transform rounded-2xl font-semibold">
             
             {language === "ar" ? "ابدأ الآن" : "Get Started Today"}
