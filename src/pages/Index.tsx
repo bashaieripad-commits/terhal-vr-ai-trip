@@ -24,6 +24,7 @@ const fadeUp: Variants = {
 
 const Index = () => {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const { permission, requestPermission, checkNearbyActivities, shouldNotify, isSupported } = useNotifications({
     enabled: true,
