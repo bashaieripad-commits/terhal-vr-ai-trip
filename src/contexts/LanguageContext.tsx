@@ -19,7 +19,7 @@ const translations = {
     
     // Hero Section
     'hero.title': 'اكتشف جمال المملكة',
-    'hero.subtitle': 'خطط لرحلتك المثالية مع الذكاء الاصطناعي',
+    'hero.subtitle': 'خطط لرحلتك المثالية مع ترحال ',
     'hero.cta': 'ابدأ الاستكشاف',
     
     // Search Bar

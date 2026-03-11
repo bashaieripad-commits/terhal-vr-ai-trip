@@ -9,7 +9,7 @@ const testimonials = [
     roleAr: "مسافر دائم", roleEn: "Frequent Traveler",
     textAr: "تجربة حجز رائعة! الفنادق المختارة كانت ممتازة والأسعار تنافسية جداً. أنصح الجميع بترحال.",
     textEn: "Amazing booking experience! Selected hotels were excellent with very competitive prices.",
-    rating: 5, avatar: "https://i.pravatar.cc/80?img=11",
+    rating: 5, avatar: "/lovable-uploads/66579822-57ce-4ce8-a1df-eea3ed850fec.jpg",
   },
   {
     nameAr: "نورة الشمري", nameEn: "Noura Al-Shammari",
