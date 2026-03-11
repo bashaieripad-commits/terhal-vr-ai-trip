@@ -44,7 +44,7 @@ export const SearchBar = () => {
               <Input id="checkin-all" type="date" className="bg-card/80 border-border/50 rounded-xl h-12" />
             </div>
             <div className="space-y-2">
-              <label htmlFor="checkout-all" className="text-sm font-medium flex items-center gap-2 text-foreground/80">
+              <label htmlFor="checkout-all" className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <Calendar className="h-4 w-4 text-primary" />
                 {t('search.checkOut')}
               </label>
