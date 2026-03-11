@@ -26,7 +26,7 @@ const testimonials = [
     rating: 5, avatar: "https://i.pravatar.cc/80?img=12",
   },
   {
-    nameAr: "سارة الدوسري", nameEn: "Sara Al-Dosari",
+    nameAr: "سارة ", nameEn: "Sara",
     roleAr: "مصورة سفر", roleEn: "Travel Photographer",
     textAr: "ميزة الواقع الافتراضي ساعدتني أختار الفندق المثالي قبل الحجز. تقنية مذهلة!",
     textEn: "The VR feature helped me choose the perfect hotel before booking. Amazing tech!",
