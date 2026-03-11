@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import { useNavigate } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { FeaturedSection } from "@/components/FeaturedSection";
 import { VRViewer } from "@/components/VRViewer";
