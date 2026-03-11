@@ -9,14 +9,14 @@ const testimonials = [
     roleAr: "مسافر دائم", roleEn: "Frequent Traveler",
     textAr: "تجربة حجز رائعة! الفنادق المختارة كانت ممتازة والأسعار تنافسية جداً. أنصح الجميع بترحال.",
     textEn: "Amazing booking experience! Selected hotels were excellent with very competitive prices.",
-    rating: 5, avatar: "https://i.pravatar.cc/80?img=11",
+    rating: 5, avatar: "/lovable-uploads/66579822-57ce-4ce8-a1df-eea3ed850fec.jpg",
   },
   {
     nameAr: "نورة الشمري", nameEn: "Noura Al-Shammari",
     roleAr: "رحالة", roleEn: "Explorer",
-    textAr: "مخطط الرحلات الذكي وفّر عليّ ساعات من البحث. رحلتي للعلا كانت مثالية بفضل ترحال!",
+    textAr: "مخطط الرحلات الذكي وفّر عليّ ساعات من البحث. رحلتي للعلا كانت تجنن بفضل ترحال!",
     textEn: "The AI trip planner saved me hours. My AlUla trip was perfect thanks to Terhal!",
-    rating: 5, avatar: "https://i.pravatar.cc/80?img=5",
+    rating: 5, avatar: "/lovable-uploads/8b6abe8f-4927-4799-822c-00a636c47a5d.jpg",
   },
   {
     nameAr: "عبدالله القحطاني", nameEn: "Abdullah Al-Qahtani",
@@ -26,7 +26,7 @@ const testimonials = [
     rating: 5, avatar: "https://i.pravatar.cc/80?img=12",
   },
   {
-    nameAr: "سارة الدوسري", nameEn: "Sara Al-Dosari",
+    nameAr: "سارة ", nameEn: "Sara",
     roleAr: "مصورة سفر", roleEn: "Travel Photographer",
     textAr: "ميزة الواقع الافتراضي ساعدتني أختار الفندق المثالي قبل الحجز. تقنية مذهلة!",
     textEn: "The VR feature helped me choose the perfect hotel before booking. Amazing tech!",
@@ -42,9 +42,9 @@ const testimonials = [
   {
     nameAr: "ريم المطيري", nameEn: "Reem Al-Mutairi",
     roleAr: "طالبة جامعية", roleEn: "University Student",
-    textAr: "أسعار مناسبة للطلاب وعروض مستمرة. حجزت رحلتي لأبها بسعر ممتاز!",
+    textAr: "أسعار مره مناسبة للطلاب وعروض مستمرة. حجزت رحلتي لأبها بسعر ممتاز!",
     textEn: "Student-friendly prices and constant deals. Booked my Abha trip at a great price!",
-    rating: 5, avatar: "https://i.pravatar.cc/80?img=16",
+    rating: 5, avatar: "/lovable-uploads/8bfe54d7-bd91-4242-84d6-bc6298b4c6b6.jpg",
   },
 ];
 
@@ -97,7 +97,7 @@ export const Testimonials = () => {
             {isAr ? "ماذا يقول عملاؤنا" : "What Our Travelers Say"}
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            {isAr ? "آراء حقيقية من مسافرين حقيقيين" : "Real reviews from real travelers"}
+            {isAr ? "آراء من مسافرين " : "Reviews from travelers"}
           </p>
         </motion.div>
       </div>
