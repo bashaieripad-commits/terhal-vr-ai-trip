@@ -11,7 +11,7 @@ export const SearchBar = () => {
 
   return (
     <div 
-      className="w-full max-w-4xl mx-auto glass rounded-2xl p-6 shadow-[var(--shadow-lg)]"
+      className="w-full max-w-4xl mx-auto bg-card/95 backdrop-blur-md rounded-2xl p-6 shadow-[var(--shadow-lg)] border border-border/30"
       role="search"
       aria-label="نموذج البحث | Search form"
     >
