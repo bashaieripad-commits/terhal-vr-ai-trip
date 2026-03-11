@@ -187,8 +187,8 @@ const Index = () => {
       {/* Quick Stats Bar */}
       <section className="relative -mt-16 z-20 px-4">
         <div className="container">
-          <motion.div 
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
+      <motion.div 
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
@@ -203,11 +203,11 @@ const Index = () => {
                 key={i}
                 custom={i}
                 variants={fadeUp}
-                className="glass rounded-2xl p-5 text-center shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-shadow"
+                className="glass rounded-xl p-3 text-center shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-shadow"
               >
-                <div className="text-2xl mb-1">{stat.icon}</div>
-                <div className="text-2xl md:text-3xl font-bold text-foreground">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-lg mb-0.5">{stat.icon}</div>
+                <div className="text-xl md:text-2xl font-bold text-foreground">{stat.value}</div>
+                <div className="text-xs text-muted-foreground">{stat.label}</div>
               </motion.div>
             ))}
           </motion.div>
