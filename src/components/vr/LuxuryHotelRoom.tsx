@@ -20,8 +20,8 @@ const Curtain = ({ position, color = "#c4a87c" }: { position: [number, number, n
       </mesh>
     ))}
     {/* Curtain rod */}
-    <mesh position={[0, 1.65, 0]}>
-      <cylinderGeometry args={[0.02, 0.02, 1, 16]} rotation={[0, 0, Math.PI / 2]} />
+    <mesh position={[0, 1.65, 0]} rotation={[0, 0, Math.PI / 2]}>
+      <cylinderGeometry args={[0.02, 0.02, 1, 16]} />
       <meshStandardMaterial color="#8b7355" metalness={0.8} roughness={0.2} />
     </mesh>
   </group>
