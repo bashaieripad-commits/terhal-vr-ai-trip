@@ -26,7 +26,7 @@ const scenes = [
     icon: Waves,
     image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop",
     badge: { ar: "حصري", en: "Exclusive" },
-    videoId: "54wxpXIWAXk",
+    videoId: "p5y7sShCSy8",
   },
   {
     id: "lobby",
