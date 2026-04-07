@@ -153,21 +153,26 @@ export const VRViewer = () => {
             )}
           </AnimatePresence>
 
-          <Canvas shadows>
+          <Canvas shadows gl={{ antialias: true, toneMapping: 3, toneMappingExposure: 1.1 }}>
             <Suspense fallback={null}>
-              <PerspectiveCamera makeDefault position={[0, 1.6, 4]} />
+              <PerspectiveCamera makeDefault position={[0, 2.5, 6]} fov={55} />
               <OrbitControls
-                enablePan={true}
+                enablePan={false}
                 enableZoom={true}
                 enableRotate={true}
-                minDistance={2}
-                maxDistance={8}
+                minDistance={3}
+                maxDistance={10}
                 target={[0, 1.5, -2]}
                 autoRotate
-                autoRotateSpeed={0.5}
+                autoRotateSpeed={0.3}
+                maxPolarAngle={Math.PI / 1.8}
+                minPolarAngle={Math.PI / 6}
+                enableDamping
+                dampingFactor={0.05}
               />
-              <Environment preset="apartment" />
-              <HotelRoom />
+              <Environment preset="apartment" background={false} />
+              <fog attach="fog" args={["#e8ddd0", 12, 22]} />
+              <LuxuryHotelRoom />
             </Suspense>
           </Canvas>
 
