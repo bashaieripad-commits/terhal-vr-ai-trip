@@ -1,12 +1,9 @@
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment, PerspectiveCamera } from "@react-three/drei";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Maximize2, RotateCw, ZoomIn, ZoomOut, Eye, Bed, Waves, Building2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Maximize2, Eye, Bed, Waves, Building2, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { LuxuryHotelRoom } from "@/components/vr/LuxuryHotelRoom";
 
 const scenes = [
   {
