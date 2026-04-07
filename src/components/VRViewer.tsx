@@ -6,52 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Maximize2, RotateCw, ZoomIn, ZoomOut, Eye, Bed, Waves, Building2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Simple hotel room scene
-const HotelRoom = () => {
-  return (
-    <group>
-      {/* Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[10, 10]} />
-        <meshStandardMaterial color="#d4b896" />
-      </mesh>
-      {/* Walls */}
-      <mesh position={[0, 2.5, -5]}>
-        <boxGeometry args={[10, 5, 0.1]} />
-        <meshStandardMaterial color="#e8d5be" />
-      </mesh>
-      <mesh position={[-5, 2.5, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <boxGeometry args={[10, 5, 0.1]} />
-        <meshStandardMaterial color="#e8d5be" />
-      </mesh>
-      {/* Bed */}
-      <group position={[0, 0.5, -3]}>
-        <mesh><boxGeometry args={[3, 0.5, 4]} /><meshStandardMaterial color="#8b7355" /></mesh>
-        <mesh position={[0, 0.5, 0]}><boxGeometry args={[3, 0.2, 4]} /><meshStandardMaterial color="#f5e6d3" /></mesh>
-        <mesh position={[-0.8, 0.7, -1.3]}><boxGeometry args={[0.8, 0.3, 0.6]} /><meshStandardMaterial color="#ffffff" /></mesh>
-        <mesh position={[0.8, 0.7, -1.3]}><boxGeometry args={[0.8, 0.3, 0.6]} /><meshStandardMaterial color="#ffffff" /></mesh>
-      </group>
-      {/* Window */}
-      <mesh position={[-4.9, 2.5, -2]}>
-        <planeGeometry args={[2, 3]} />
-        <meshStandardMaterial color="#87ceeb" emissive="#87ceeb" emissiveIntensity={0.3} />
-      </mesh>
-      {/* Nightstand */}
-      <mesh position={[2.5, 0.4, -3]}>
-        <boxGeometry args={[0.8, 0.8, 0.6]} /><meshStandardMaterial color="#8b7355" />
-      </mesh>
-      {/* Lamp */}
-      <group position={[2.5, 1, -3]}>
-        <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.1, 0.1, 0.6]} /><meshStandardMaterial color="#d4af37" /></mesh>
-        <mesh position={[0, 0.8, 0]}><coneGeometry args={[0.3, 0.4, 32]} /><meshStandardMaterial color="#f5deb3" emissive="#fff5e1" emissiveIntensity={0.5} /></mesh>
-      </group>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow />
-      <pointLight position={[2.5, 1.5, -3]} intensity={0.5} color="#fff5e1" />
-    </group>
-  );
-};
+import { LuxuryHotelRoom } from "@/components/vr/LuxuryHotelRoom";
 
 const scenes = [
   {
