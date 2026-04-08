@@ -108,9 +108,16 @@ const Index = () => {
         role="banner">
         
         <motion.div
-          className="absolute inset-0 bg-cover bg-center scale-110"
-          style={{ backgroundImage: `url(${heroImage})`, y: heroY }}>
-          
+          className="absolute inset-0 scale-110"
+          style={{ y: heroY }}>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_091828_e240eb17-6edc-4129-ad9d-98678e3fd238.mp4"
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-deep-brown/70 via-deep-brown/40 to-background" />
           <div className="absolute inset-0 bg-gradient-to-r from-deep-brown/60 via-transparent to-transparent" />
         </motion.div>
