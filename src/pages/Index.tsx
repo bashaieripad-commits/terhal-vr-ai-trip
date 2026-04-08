@@ -101,14 +101,14 @@ const Index = () => {
         </motion.div>
       }
       
-      {/* Hero Section - Immersive */}
+      {/* Hero Section - Full Viewport, Cinematic */}
       <section
         ref={heroRef}
-        className="relative h-[90vh] min-h-[600px] flex items-center justify-center overflow-hidden"
+        className="relative h-screen flex items-center justify-center overflow-hidden"
         role="banner">
         
         <motion.div
-          className="absolute inset-0 scale-110"
+          className="absolute inset-0 scale-105"
           style={{ y: heroY }}>
           <video
             autoPlay
@@ -118,8 +118,8 @@ const Index = () => {
             className="absolute inset-0 w-full h-full object-cover"
             src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_091828_e240eb17-6edc-4129-ad9d-98678e3fd238.mp4"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-deep-brown/70 via-deep-brown/40 to-background" />
-          <div className="absolute inset-0 bg-gradient-to-r from-deep-brown/60 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-deep-brown/60 via-deep-brown/30 to-background/80" />
+          <div className="absolute inset-0 bg-gradient-to-r from-deep-brown/50 via-transparent to-transparent" />
         </motion.div>
 
         {/* Floating decorative elements */}
@@ -131,26 +131,26 @@ const Index = () => {
           className="container relative z-10 px-4"
           style={{ opacity: heroOpacity }}>
           
-          <div className="max-w-3xl mx-auto text-center space-y-8">
+          <div className="max-w-3xl mx-auto text-center space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
               
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium text-white/90 mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium text-white/90 mb-4">
                 <Star className="h-4 w-4 text-sandy-gold" />
                 {language === "ar" ? "أفضل منصة سفر في المملكة" : "Saudi Arabia's #1 Travel Platform"}
               </div>
             </motion.div>
 
             <motion.h1
-              className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-[0.9] tracking-tight"
+              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-[0.9] tracking-tight"
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}>
               
               {t('hero.title')}
-              <span className="block mt-2 text-transparent bg-gradient-to-r from-sandy-gold via-terracotta to-sandy-gold bg-clip-text animate-shimmer">
+              <span className="block mt-3 text-transparent bg-gradient-to-r from-sandy-gold via-terracotta to-sandy-gold bg-clip-text animate-shimmer">
                 {t('hero.subtitle')}
               </span>
             </motion.h1>
@@ -165,11 +165,23 @@ const Index = () => {
             </motion.p>
 
             <motion.div
+              className="flex items-center justify-center gap-4 pt-4"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.45 }}>
-              
-              <SearchBar />
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => navigate("/search")}
+                className="rounded-full px-8 py-6 text-base font-medium shadow-lg hover:scale-105 transition-transform">
+                {language === "ar" ? "استكشف" : "Discover"}
+              </Button>
+              <Button
+                size="lg"
+                onClick={() => navigate("/trip-planner")}
+                className="rounded-full px-8 py-6 text-base font-medium bg-deep-brown text-white hover:bg-deep-brown/90 shadow-lg hover:scale-105 transition-transform">
+                {language === "ar" ? "خطط رحلتك" : "Plan Your Trip"}
+              </Button>
             </motion.div>
           </div>
         </motion.div>
@@ -191,6 +203,33 @@ const Index = () => {
             <ArrowDown className="h-5 w-5 text-white/50" />
           </motion.div>
         </motion.div>
+      </section>
+
+      {/* Search Section - Separate from hero */}
+      <section className="py-16 px-4 bg-gradient-to-b from-background to-secondary/20">
+        <div className="container">
+          <motion.div
+            className="max-w-3xl mx-auto text-center mb-8"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}>
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">
+              {language === "ar" ? "ابحث عن وجهتك" : "Find Your Destination"}
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              {language === "ar" ? "ابحث عن الفنادق والرحلات والأنشطة في مكان واحد" : "Search hotels, flights, and activities in one place"}
+            </p>
+          </motion.div>
+          <motion.div
+            className="max-w-3xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.15 }}>
+            <SearchBar />
+          </motion.div>
+        </div>
       </section>
 
       {/* Quick Stats Bar */}
