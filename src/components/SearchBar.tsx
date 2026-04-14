@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, MapPin, Calendar, Users, Plane, Hotel, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 
 export const SearchBar = () => {
   const [searchType, setSearchType] = useState("all");
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isHomePage = location.pathname === "/";
+  const urlSearchType = searchParams.get("type") || "all";
 
   // Form states
   const [destination, setDestination] = useState("");
@@ -25,6 +27,12 @@ export const SearchBar = () => {
   const [hotelCheckOut, setHotelCheckOut] = useState("");
   const [activityLocation, setActivityLocation] = useState("");
   const [activityDate, setActivityDate] = useState("");
+
+  useEffect(() => {
+    if (!isHomePage) {
+      setSearchType(urlSearchType);
+    }
+  }, [isHomePage, urlSearchType]);
 
   const buildSearchParams = () => {
     const params = new URLSearchParams();
@@ -63,10 +71,7 @@ export const SearchBar = () => {
 
   const handleTabChange = (value: string) => {
     setSearchType(value);
-    // On home page, clicking a specific tab navigates directly to filtered results
-    if (isHomePage && value !== "all") {
-      navigate(`/search?type=${value}`);
-    }
+    navigate(`/search?type=${value}`);
   };
 
   const tabs = [
