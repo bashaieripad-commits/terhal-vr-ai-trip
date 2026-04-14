@@ -27,7 +27,7 @@ export const FeaturedSection = () => {
       description: language === "ar" ? "أفضل عروض الطيران داخل وخارج المملكة" : "Find the best deals on flights across Saudi Arabia and beyond",
       image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop",
       gradient: "from-terracotta to-sandy-gold",
-      link: "/search",
+      link: "/search?type=flights",
     },
     {
       icon: Hotel,
@@ -35,7 +35,7 @@ export const FeaturedSection = () => {
       description: t('featured.luxuryDesc'),
       image: hotelImage,
       gradient: "from-warm-beige to-desert-sand",
-      link: "/search",
+      link: "/search?type=hotels",
     },
     {
       icon: Compass,
@@ -43,7 +43,7 @@ export const FeaturedSection = () => {
       description: t('featured.activitiesDesc'),
       image: activitiesImage,
       gradient: "from-deep-brown to-terracotta",
-      link: "/search",
+      link: "/search?type=activities",
     },
     {
       icon: Sparkles,
