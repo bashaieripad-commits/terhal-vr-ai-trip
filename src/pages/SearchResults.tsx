@@ -4,14 +4,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Star, Eye, MapPin, ShoppingCart, Search, SlidersHorizontal } from "lucide-react";
+import { Star, Eye, MapPin, Search, SlidersHorizontal, AlertCircle, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SearchBar } from "@/components/SearchBar";
 
 interface ContentItem {
   id: string;
@@ -28,57 +30,115 @@ interface ContentItem {
 }
 
 const SearchResults = () => {
-  const [priceRange, setPriceRange] = useState([0, 2000]);
+  const [searchParams] = useSearchParams();
+  const [priceRange, setPriceRange] = useState([0, 5000]);
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { language } = useLanguage();
   const [results, setResults] = useState<ContentItem[]>([]);
   const [allResults, setAllResults] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
   const [showFilters, setShowFilters] = useState(false);
+  const [nameFilter, setNameFilter] = useState("");
+
+  // Read search params
+  const searchType = searchParams.get("type") || "all";
+  const searchQuery = searchParams.get("q") || "";
+  const searchFrom = searchParams.get("from") || "";
+  const searchTo = searchParams.get("to") || "";
+  const searchDate = searchParams.get("date") || "";
+  const searchCheckIn = searchParams.get("checkIn") || "";
+  const searchCheckOut = searchParams.get("checkOut") || "";
 
   useEffect(() => {
+    // Set initial type filter based on search params
+    if (searchType === "flights") setSelectedTypes(["flight"]);
+    else if (searchType === "hotels") setSelectedTypes(["hotel"]);
+    else if (searchType === "activities") setSelectedTypes(["activity"]);
+    else setSelectedTypes(["all"]);
+    
     fetchContent();
-  }, []);
+  }, [searchParams.toString()]);
 
   const fetchContent = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      const { data: contentData, error: contentError } = await supabase
-        .from("content")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      if (contentError) throw contentError;
-
-      const { data: flightsData, error: flightsError } = await supabase
-        .from("flights")
-        .select("*")
-        .eq("status", "scheduled")
-        .order("departure_time", { ascending: true });
-      if (flightsError) throw flightsError;
+      const items: ContentItem[] = [];
       
-      const formattedContent: ContentItem[] = (contentData || []).map((item) => ({
-        id: item.id, title: item.title, content_type: item.content_type,
-        location: item.location || "", price: item.price || 0,
-        images: Array.isArray(item.images) ? (item.images as string[]) : [],
-        vr_content: item.vr_content,
-      }));
+      // Fetch content (hotels + activities) if not flights-only
+      if (searchType !== "flights") {
+        let contentQuery = supabase
+          .from("content")
+          .select("*")
+          .eq("is_active", true);
 
-      const formattedFlights: ContentItem[] = (flightsData || []).map((flight) => ({
-        id: flight.id, title: `${flight.from_city} - ${flight.to_city}`,
-        content_type: "flight", location: `${flight.from_city} إلى ${flight.to_city}`,
-        price: flight.base_price,
-        images: ["https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop"],
-        vr_content: null, flight_number: flight.flight_number, airline: flight.airline,
-        departure_time: flight.departure_time, arrival_time: flight.arrival_time,
-      }));
+        if (searchType === "hotels") contentQuery = contentQuery.eq("content_type", "hotel");
+        if (searchType === "activities") contentQuery = contentQuery.eq("content_type", "activity");
+        
+        if (searchQuery) {
+          contentQuery = contentQuery.or(`title.ilike.%${searchQuery}%,location.ilike.%${searchQuery}%`);
+        }
 
-      const allData = [...formattedContent, ...formattedFlights];
-      setAllResults(allData);
-      setResults(allData);
-    } catch (error) {
-      console.error("Error fetching content:", error);
+        const { data: contentData, error: contentError } = await contentQuery.order("created_at", { ascending: false });
+        if (contentError) throw contentError;
+
+        const formatted = (contentData || []).map((item) => ({
+          id: item.id,
+          title: item.title,
+          content_type: item.content_type,
+          location: item.location || "",
+          price: item.price || 0,
+          images: Array.isArray(item.images) ? (item.images as string[]) : [],
+          vr_content: item.vr_content,
+        }));
+        items.push(...formatted);
+      }
+
+      // Fetch flights if not hotels/activities-only
+      if (searchType === "all" || searchType === "flights") {
+        let flightQuery = supabase
+          .from("flights")
+          .select("*")
+          .eq("status", "scheduled");
+        
+        if (searchFrom) flightQuery = flightQuery.ilike("from_city", `%${searchFrom}%`);
+        if (searchTo) flightQuery = flightQuery.ilike("to_city", `%${searchTo}%`);
+        if (searchDate) flightQuery = flightQuery.gte("departure_time", searchDate);
+        if (searchQuery) {
+          flightQuery = flightQuery.or(`from_city.ilike.%${searchQuery}%,to_city.ilike.%${searchQuery}%`);
+        }
+
+        const { data: flightsData, error: flightsError } = await flightQuery.order("departure_time", { ascending: true });
+        if (flightsError) throw flightsError;
+
+        const formattedFlights = (flightsData || []).map((flight) => ({
+          id: flight.id,
+          title: `${flight.from_city} → ${flight.to_city}`,
+          content_type: "flight",
+          location: `${flight.from_city} → ${flight.to_city}`,
+          price: flight.base_price,
+          images: ["https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop"],
+          vr_content: null,
+          flight_number: flight.flight_number,
+          airline: flight.airline,
+          departure_time: flight.departure_time,
+          arrival_time: flight.arrival_time,
+        }));
+        items.push(...formattedFlights);
+      }
+
+      setAllResults(items);
+      setResults(items);
+    } catch (err) {
+      console.error("Error fetching content:", err);
+      const msg = language === "ar" 
+        ? "حدث خطأ أثناء تحميل البيانات. تأكد من اتصالك بالإنترنت وحاول مرة أخرى."
+        : "An error occurred while loading data. Check your connection and try again.";
+      setError(msg);
       toast.error(language === "ar" ? "خطأ في تحميل البيانات" : "Error loading data");
     } finally {
       setLoading(false);
@@ -96,9 +156,26 @@ const SearchResults = () => {
   };
 
   useEffect(() => {
-    if (selectedTypes.includes("all")) setResults(allResults);
-    else setResults(allResults.filter((item) => selectedTypes.includes(item.content_type)));
-  }, [selectedTypes, allResults]);
+    let filtered = allResults;
+    
+    // Type filter
+    if (!selectedTypes.includes("all")) {
+      filtered = filtered.filter((item) => selectedTypes.includes(item.content_type));
+    }
+    
+    // Name filter
+    if (nameFilter.trim()) {
+      filtered = filtered.filter((item) =>
+        item.title.toLowerCase().includes(nameFilter.toLowerCase()) ||
+        item.location.toLowerCase().includes(nameFilter.toLowerCase())
+      );
+    }
+    
+    // Price filter
+    filtered = filtered.filter((item) => item.price >= priceRange[0] && item.price <= priceRange[1]);
+    
+    setResults(filtered);
+  }, [selectedTypes, allResults, nameFilter, priceRange]);
 
   const handleViewDetails = (item: ContentItem) => {
     if (item.content_type === "hotel") navigate(`/hotel/${item.id}`);
@@ -113,6 +190,19 @@ const SearchResults = () => {
     { value: "flight", label: language === "ar" ? "رحلات" : "Flights" },
     { value: "activity", label: language === "ar" ? "فعاليات" : "Events" },
   ];
+
+  const getSearchSummary = () => {
+    const parts: string[] = [];
+    if (searchQuery) parts.push(searchQuery);
+    if (searchFrom && searchTo) parts.push(`${searchFrom} → ${searchTo}`);
+    else if (searchFrom) parts.push(searchFrom);
+    else if (searchTo) parts.push(searchTo);
+    if (searchDate) parts.push(searchDate);
+    if (searchCheckIn) parts.push(searchCheckIn);
+    return parts.length > 0 ? parts.join(" • ") : null;
+  };
+
+  const summary = getSearchSummary();
 
   return (
     <div className="min-h-screen bg-background">
@@ -129,12 +219,43 @@ const SearchResults = () => {
           <h1 className="text-4xl md:text-5xl font-bold mb-3">
             {language === "ar" ? "نتائج البحث" : "Search Results"}
           </h1>
-          <p className="text-muted-foreground text-lg">
-            {language === "ar" 
-              ? `تم العثور على ${results.length} نتيجة`
-              : `Found ${results.length} results`}
+          {summary && (
+            <p className="text-primary font-medium text-lg mb-1">
+              {summary}
+            </p>
+          )}
+          <p className="text-muted-foreground">
+            {loading 
+              ? (language === "ar" ? "جاري البحث..." : "Searching...") 
+              : (language === "ar" ? `تم العثور على ${results.length} نتيجة` : `Found ${results.length} results`)}
           </p>
         </motion.div>
+
+        {/* Inline search bar for refining */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <SearchBar />
+        </motion.div>
+
+        {/* Error state */}
+        {error && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-8">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{language === "ar" ? "خطأ" : "Error"}</AlertTitle>
+              <AlertDescription className="flex items-center justify-between">
+                <span>{error}</span>
+                <Button size="sm" variant="outline" onClick={fetchContent}>
+                  {language === "ar" ? "إعادة المحاولة" : "Retry"}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
 
         {/* Filter chips */}
         <motion.div 
@@ -177,8 +298,13 @@ const SearchResults = () => {
               <CardContent className="p-6">
                 <div className="grid gap-6 md:grid-cols-3">
                   <div className="space-y-3">
-                    <label className="text-sm font-medium">{language === "ar" ? "بحث" : "Search"}</label>
-                    <Input placeholder={language === "ar" ? "بحث بالاسم..." : "Filter by name..."} className="rounded-xl h-11" />
+                    <label className="text-sm font-medium">{language === "ar" ? "بحث بالاسم" : "Search by name"}</label>
+                    <Input 
+                      placeholder={language === "ar" ? "بحث بالاسم..." : "Filter by name..."} 
+                      className="rounded-xl h-11" 
+                      value={nameFilter}
+                      onChange={(e) => setNameFilter(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-3 md:col-span-2">
                     <label className="text-sm font-medium">{language === "ar" ? "نطاق السعر" : "Price Range"}</label>
@@ -196,12 +322,11 @@ const SearchResults = () => {
 
         {/* Results */}
         {loading ? (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-80 rounded-2xl bg-muted animate-pulse" />
-            ))}
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-muted-foreground text-lg">{language === "ar" ? "جاري البحث..." : "Searching..."}</p>
           </div>
-        ) : results.length === 0 ? (
+        ) : results.length === 0 && !error ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
             <Card className="border-2">
               <CardContent className="py-16 text-center">
@@ -209,9 +334,14 @@ const SearchResults = () => {
                 <h3 className="text-2xl font-bold mb-2">
                   {language === "ar" ? "لا توجد نتائج" : "No results found"}
                 </h3>
-                <p className="text-muted-foreground">
-                  {language === "ar" ? "جرب البحث بمعايير أخرى" : "Try different search criteria"}
+                <p className="text-muted-foreground mb-6">
+                  {language === "ar" 
+                    ? "لم نجد نتائج تطابق بحثك. جرب تغيير معايير البحث أو البحث بكلمات مختلفة."
+                    : "We couldn't find results matching your search. Try different search criteria."}
                 </p>
+                <Button onClick={() => navigate("/search")} variant="outline">
+                  {language === "ar" ? "مسح الفلاتر" : "Clear Filters"}
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -248,6 +378,11 @@ const SearchResults = () => {
                            result.content_type === "flight" ? "رحلة" : result.content_type)
                         : (result.content_type === "activity" ? "Event" : result.content_type)}
                     </Badge>
+                    {result.airline && (
+                      <Badge className="absolute bottom-3 left-3 rtl:left-auto rtl:right-3 bg-primary/90 backdrop-blur-sm text-primary-foreground border-0">
+                        {result.airline} • {result.flight_number}
+                      </Badge>
+                    )}
                   </div>
                   <CardContent className="p-5 space-y-3">
                     <div>
@@ -256,6 +391,13 @@ const SearchResults = () => {
                         <MapPin className="h-3 w-3" />
                         {result.location}
                       </p>
+                      {result.departure_time && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(result.departure_time).toLocaleDateString(language === "ar" ? "ar-SA" : "en-US", { 
+                            weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" 
+                          })}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-border/50">
                       <div className="flex items-center gap-1">
