@@ -54,15 +54,28 @@ const Auth = () => {
 
   const isRtl = language === "ar";
 
-  // Redirect if user is already authenticated or becomes authenticated (e.g. after Google OAuth)
+  // Redirect if user is already authenticated (e.g. after Google OAuth)
+  // But block admins from entering via user portal
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (roleData) {
+          await supabase.auth.signOut();
+          toast.error(isRtl ? "عذراً، هذا الحساب مخصص للموظفين، يرجى الدخول من المنصة المخصصة" : "This account is for staff only. Please use the staff login portal.");
+          return;
+        }
         navigate("/", { replace: true });
       }
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, isRtl]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,8 +97,26 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email: signInEmail, password: signInPassword });
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ email: signInEmail, password: signInPassword });
       if (error) throw error;
+
+      // Check if user has admin role - block admin from user portal
+      if (authData.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", authData.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (roleData) {
+          await supabase.auth.signOut();
+          toast.error(isRtl ? "عذراً، هذا الحساب مخصص للموظفين، يرجى الدخول من المنصة المخصصة" : "This account is for staff only. Please use the staff login portal.");
+          setLoading(false);
+          return;
+        }
+      }
+
       toast.success(isRtl ? "تم تسجيل الدخول بنجاح!" : "Signed in successfully!");
       navigate("/");
     } catch (error: any) { toast.error(error.message || "Login failed"); } finally { setLoading(false); }
