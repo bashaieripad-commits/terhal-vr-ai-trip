@@ -129,7 +129,7 @@ const Checkout = () => {
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <motion.div 
-              className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center"
+              className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-sandy-gold flex items-center justify-center"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
@@ -147,7 +147,7 @@ const Checkout = () => {
             </p>
 
             {/* Reference Number */}
-            <Card className="mb-8 border-2 border-green-200 bg-green-50/50 dark:bg-green-950/20">
+            <Card className="mb-8 border-2 border-primary/20 bg-primary/5">
               <CardContent className="p-6">
                 <p className="text-sm text-muted-foreground mb-2">
                   {language === "ar" ? "الرقم المرجعي" : "Reference Number"}
