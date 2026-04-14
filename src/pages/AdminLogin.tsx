@@ -27,17 +27,17 @@ const AdminLogin = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Check if user has admin role
+        // Check if user has admin role - block regular users
         const { data: roleData, error: roleError } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", authData.user.id)
           .eq("role", "admin")
-          .single();
+          .maybeSingle();
 
         if (roleError || !roleData) {
           await supabase.auth.signOut();
-          toast.error("غير مصرح لك بالدخول إلى لوحة التحكم");
+          toast.error("هذا الحساب مخصص للمستخدمين العاديين. لا يمكنك الدخول من بوابة الموظفين.");
           setLoading(false);
           return;
         }
