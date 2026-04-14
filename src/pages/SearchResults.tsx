@@ -29,6 +29,13 @@ interface ContentItem {
   arrival_time?: string;
 }
 
+const mapSearchTypeToFilters = (type: string) => {
+  if (type === "flights") return ["flight"];
+  if (type === "hotels") return ["hotel"];
+  if (type === "activities") return ["activity"];
+  return ["all"];
+};
+
 const SearchResults = () => {
   const [searchParams] = useSearchParams();
   const [priceRange, setPriceRange] = useState([0, 5000]);
@@ -39,7 +46,7 @@ const SearchResults = () => {
   const [allResults, setAllResults] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(() => mapSearchTypeToFilters(searchParams.get("type") || "all"));
   const [showFilters, setShowFilters] = useState(false);
   const [nameFilter, setNameFilter] = useState("");
 
@@ -52,17 +59,11 @@ const SearchResults = () => {
   const searchCheckIn = searchParams.get("checkIn") || "";
   const searchCheckOut = searchParams.get("checkOut") || "";
 
-  // Set initial type filter from URL only on first load
-  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    setSelectedTypes(mapSearchTypeToFilters(searchType));
+  }, [searchType]);
 
   useEffect(() => {
-    if (!initialized) {
-      if (searchType === "flights") setSelectedTypes(["flight"]);
-      else if (searchType === "hotels") setSelectedTypes(["hotel"]);
-      else if (searchType === "activities") setSelectedTypes(["activity"]);
-      else setSelectedTypes(["all"]);
-      setInitialized(true);
-    }
     fetchContent();
   }, [searchParams.toString()]);
 
@@ -72,68 +73,62 @@ const SearchResults = () => {
 
     try {
       const items: ContentItem[] = [];
-      
-      // Fetch content (hotels + activities) if not flights-only
-      if (searchType !== "flights") {
-        let contentQuery = supabase
-          .from("content")
-          .select("*")
-          .eq("is_active", true);
 
-        if (searchType === "hotels") contentQuery = contentQuery.eq("content_type", "hotel");
-        if (searchType === "activities") contentQuery = contentQuery.eq("content_type", "activity");
-        
-        if (searchQuery) {
-          contentQuery = contentQuery.or(`title.ilike.%${searchQuery}%,location.ilike.%${searchQuery}%`);
-        }
+      let contentQuery = supabase
+        .from("content")
+        .select("*")
+        .eq("is_active", true);
 
-        const { data: contentData, error: contentError } = await contentQuery.order("created_at", { ascending: false });
-        if (contentError) throw contentError;
+      if (searchType === "hotels") contentQuery = contentQuery.eq("content_type", "hotel");
+      if (searchType === "activities") contentQuery = contentQuery.eq("content_type", "activity");
 
-        const formatted = (contentData || []).map((item) => ({
-          id: item.id,
-          title: item.title,
-          content_type: item.content_type,
-          location: item.location || "",
-          price: item.price || 0,
-          images: Array.isArray(item.images) ? (item.images as string[]) : [],
-          vr_content: item.vr_content,
-        }));
-        items.push(...formatted);
+      if (searchQuery) {
+        contentQuery = contentQuery.or(`title.ilike.%${searchQuery}%,location.ilike.%${searchQuery}%`);
       }
 
-      // Fetch flights if not hotels/activities-only
-      if (searchType === "all" || searchType === "flights") {
-        let flightQuery = supabase
-          .from("flights")
-          .select("*")
-          .eq("status", "scheduled");
-        
-        if (searchFrom) flightQuery = flightQuery.ilike("from_city", `%${searchFrom}%`);
-        if (searchTo) flightQuery = flightQuery.ilike("to_city", `%${searchTo}%`);
-        if (searchDate) flightQuery = flightQuery.gte("departure_time", searchDate);
-        if (searchQuery) {
-          flightQuery = flightQuery.or(`from_city.ilike.%${searchQuery}%,to_city.ilike.%${searchQuery}%`);
-        }
+      const { data: contentData, error: contentError } = await contentQuery.order("created_at", { ascending: false });
+      if (contentError) throw contentError;
 
-        const { data: flightsData, error: flightsError } = await flightQuery.order("departure_time", { ascending: true });
-        if (flightsError) throw flightsError;
+      const formatted = (contentData || []).map((item) => ({
+        id: item.id,
+        title: item.title,
+        content_type: item.content_type,
+        location: item.location || "",
+        price: item.price || 0,
+        images: Array.isArray(item.images) ? (item.images as string[]) : [],
+        vr_content: item.vr_content,
+      }));
+      items.push(...formatted);
 
-        const formattedFlights = (flightsData || []).map((flight) => ({
-          id: flight.id,
-          title: `${flight.from_city} → ${flight.to_city}`,
-          content_type: "flight",
-          location: `${flight.from_city} → ${flight.to_city}`,
-          price: flight.base_price,
-          images: ["https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop"],
-          vr_content: null,
-          flight_number: flight.flight_number,
-          airline: flight.airline,
-          departure_time: flight.departure_time,
-          arrival_time: flight.arrival_time,
-        }));
-        items.push(...formattedFlights);
+      let flightQuery = supabase
+        .from("flights")
+        .select("*")
+        .eq("status", "scheduled");
+
+      if (searchFrom) flightQuery = flightQuery.ilike("from_city", `%${searchFrom}%`);
+      if (searchTo) flightQuery = flightQuery.ilike("to_city", `%${searchTo}%`);
+      if (searchDate) flightQuery = flightQuery.gte("departure_time", searchDate);
+      if (searchQuery) {
+        flightQuery = flightQuery.or(`from_city.ilike.%${searchQuery}%,to_city.ilike.%${searchQuery}%`);
       }
+
+      const { data: flightsData, error: flightsError } = await flightQuery.order("departure_time", { ascending: true });
+      if (flightsError) throw flightsError;
+
+      const formattedFlights = (flightsData || []).map((flight) => ({
+        id: flight.id,
+        title: `${flight.from_city} → ${flight.to_city}`,
+        content_type: "flight",
+        location: `${flight.from_city} → ${flight.to_city}`,
+        price: flight.base_price,
+        images: ["https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop"],
+        vr_content: null,
+        flight_number: flight.flight_number,
+        airline: flight.airline,
+        departure_time: flight.departure_time,
+        arrival_time: flight.arrival_time,
+      }));
+      items.push(...formattedFlights);
 
       setAllResults(items);
       setResults(items);
@@ -160,24 +155,21 @@ const SearchResults = () => {
   };
 
   useEffect(() => {
-    let filtered = allResults;
-    
-    // Type filter
+    let filtered = [...allResults];
+
     if (!selectedTypes.includes("all")) {
       filtered = filtered.filter((item) => selectedTypes.includes(item.content_type));
     }
-    
-    // Name filter
+
     if (nameFilter.trim()) {
       filtered = filtered.filter((item) =>
         item.title.toLowerCase().includes(nameFilter.toLowerCase()) ||
         item.location.toLowerCase().includes(nameFilter.toLowerCase())
       );
     }
-    
-    // Price filter
+
     filtered = filtered.filter((item) => item.price >= priceRange[0] && item.price <= priceRange[1]);
-    
+
     setResults(filtered);
   }, [selectedTypes, allResults, nameFilter, priceRange]);
 
