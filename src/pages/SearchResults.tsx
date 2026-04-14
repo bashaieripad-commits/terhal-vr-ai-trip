@@ -52,13 +52,17 @@ const SearchResults = () => {
   const searchCheckIn = searchParams.get("checkIn") || "";
   const searchCheckOut = searchParams.get("checkOut") || "";
 
+  // Set initial type filter from URL only on first load
+  const [initialized, setInitialized] = useState(false);
+
   useEffect(() => {
-    // Set initial type filter based on search params
-    if (searchType === "flights") setSelectedTypes(["flight"]);
-    else if (searchType === "hotels") setSelectedTypes(["hotel"]);
-    else if (searchType === "activities") setSelectedTypes(["activity"]);
-    else setSelectedTypes(["all"]);
-    
+    if (!initialized) {
+      if (searchType === "flights") setSelectedTypes(["flight"]);
+      else if (searchType === "hotels") setSelectedTypes(["hotel"]);
+      else if (searchType === "activities") setSelectedTypes(["activity"]);
+      else setSelectedTypes(["all"]);
+      setInitialized(true);
+    }
     fetchContent();
   }, [searchParams.toString()]);
 
