@@ -693,8 +693,17 @@ const MyTickets = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-4 shrink-0">
+                              <div className="text-right rtl:text-left">
+                                <div className="text-xl font-bold text-primary">
+                                  {ticket.resell_price ?? 0} {isAr ? "ر.س" : "SAR"}
+                                </div>
+                                <div className="text-xs text-muted-foreground">{isAr ? "سعر إعادة البيع" : "Resale price"}</div>
+                              </div>
                               {ticket.user_id !== userId && (
-                                <Button className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90">
+                                <Button
+                                  className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90"
+                                  onClick={() => requestBuyTicket(ticket)}
+                                >
                                   {isAr ? "اشترِ الآن" : "Buy Now"}
                                 </Button>
                               )}
