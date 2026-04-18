@@ -327,6 +327,65 @@ const MyTickets = () => {
     }
   };
 
+  const requestBuyTicket = (ticket: TicketRow) => {
+    setPendingBuyTicket(ticket);
+    setConfirmBuyOpen(true);
+  };
+
+  const handleBuyTicket = async () => {
+    if (!pendingBuyTicket || !userId) return;
+    setBuying(true);
+    try {
+      const sellerId = pendingBuyTicket.user_id;
+      const price = Number(pendingBuyTicket.resell_price ?? 0);
+
+      // Transfer ownership + mark as sold
+      const { error: updateErr } = await supabase
+        .from("tickets")
+        .update({
+          user_id: userId,
+          is_resellable: false,
+          resell_status: "sold",
+        })
+        .eq("id", pendingBuyTicket.id)
+        .eq("resell_status", "listed");
+
+      if (updateErr) throw updateErr;
+
+      // Record payment for the buyer
+      const { error: payErr } = await supabase.from("payments").insert({
+        user_id: userId,
+        amount: price,
+        currency: "SAR",
+        status: "completed",
+        payment_method: "mada",
+        transaction_id: `RESALE-${Date.now().toString(36).toUpperCase()}`,
+      } as any);
+      if (payErr) console.warn("Payment insert warning:", payErr);
+
+      // Notify seller
+      await supabase.from("notifications").insert({
+        user_id: sellerId,
+        title: isAr ? "تم بيع تذكرتك" : "Your ticket was sold",
+        message: isAr
+          ? `تم بيع تذكرتك "${pendingBuyTicket.event_name}" بمبلغ ${price} ر.س`
+          : `Your ticket "${pendingBuyTicket.event_name}" was sold for ${price} SAR`,
+        type: "resale",
+      } as any);
+
+      toast.success(isAr ? "تم شراء التذكرة بنجاح 🎉" : "Ticket purchased successfully 🎉");
+      setConfirmBuyOpen(false);
+      setPendingBuyTicket(null);
+      await Promise.all([fetchMyTickets(userId), fetchResaleTickets()]);
+      setActiveTab("bookings");
+    } catch (error) {
+      console.error("Error buying ticket:", error);
+      toast.error(isAr ? "تعذر إتمام الشراء" : "Could not complete purchase");
+    } finally {
+      setBuying(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
