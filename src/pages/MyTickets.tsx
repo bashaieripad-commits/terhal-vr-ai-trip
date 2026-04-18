@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { motion, type Variants } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,8 +84,17 @@ const MyTickets = () => {
   // Resell dialog
   const [resellDialogOpen, setResellDialogOpen] = useState(false);
   const [selectedTicketForResell, setSelectedTicketForResell] = useState<TicketRow | null>(null);
+  const [selectedBookingForResell, setSelectedBookingForResell] = useState<Reservation | null>(null);
   const [resellPrice, setResellPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Confirm resell
+  const [confirmResellOpen, setConfirmResellOpen] = useState(false);
+  const [pendingResellBooking, setPendingResellBooking] = useState<(Reservation & { ticket?: TicketRow }) | null>(null);
+
+  // Confirm cancel resale
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+  const [pendingCancelTicketId, setPendingCancelTicketId] = useState<string | null>(null);
 
   // QR dialog
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -211,9 +221,51 @@ const MyTickets = () => {
     setResaleTickets(data || []);
   };
 
-  const handleListForResale = (ticket: TicketRow) => {
+  const requestListForResale = (booking: Reservation & { ticket?: TicketRow }) => {
+    setPendingResellBooking(booking);
+    setConfirmResellOpen(true);
+  };
+
+  const proceedToResellDialog = async () => {
+    if (!pendingResellBooking || !userId) return;
+    setConfirmResellOpen(false);
+
+    let ticket = pendingResellBooking.ticket;
+
+    // Auto-create a ticket for this reservation if missing (e.g. flights/hotels)
+    if (!ticket) {
+      const ticketNumber = `TRH-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const eventDate =
+        pendingResellBooking.check_in ||
+        pendingResellBooking.created_at ||
+        new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from("tickets")
+        .insert({
+          user_id: userId,
+          reservation_id: pendingResellBooking.id,
+          ticket_number: ticketNumber,
+          event_name: pendingResellBooking.item_name,
+          event_date: eventDate,
+          is_valid: true,
+          is_resellable: false,
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        console.error("Error creating ticket:", error);
+        toast.error(isAr ? "تعذر إنشاء التذكرة" : "Could not create ticket");
+        return;
+      }
+      ticket = data as TicketRow;
+      await fetchMyTickets(userId);
+    }
+
     setSelectedTicketForResell(ticket);
-    setResellPrice("");
+    setSelectedBookingForResell(pendingResellBooking);
+    setResellPrice(String(pendingResellBooking.total_price ?? ""));
     setResellDialogOpen(true);
   };
 
@@ -243,12 +295,18 @@ const MyTickets = () => {
     }
   };
 
-  const handleCancelResale = async (ticketId: string) => {
+  const requestCancelResale = (ticketId: string) => {
+    setPendingCancelTicketId(ticketId);
+    setConfirmCancelOpen(true);
+  };
+
+  const handleCancelResale = async () => {
+    if (!pendingCancelTicketId) return;
     try {
       const { error } = await supabase
         .from("tickets")
         .update({ is_resellable: false, resell_status: null })
-        .eq("id", ticketId);
+        .eq("id", pendingCancelTicketId);
       if (error) throw error;
       toast.success(isAr ? "تم إلغاء عرض البيع" : "Resale listing cancelled");
       if (userId) {
@@ -256,6 +314,9 @@ const MyTickets = () => {
       }
     } catch (error) {
       toast.error(isAr ? "حدث خطأ" : "An error occurred");
+    } finally {
+      setConfirmCancelOpen(false);
+      setPendingCancelTicketId(null);
     }
   };
 
@@ -476,14 +537,14 @@ const MyTickets = () => {
                                     QR
                                   </Button>
                                 )}
-                                {booking.ticket && booking.status === "confirmed" && (
-                                  booking.ticket.resell_status === "listed" ? (
-                                    <Button size="sm" variant="outline" className="rounded-lg text-xs border-red-300 text-red-500" onClick={() => handleCancelResale(booking.ticket!.id)}>
+                                {booking.status === "confirmed" && (
+                                  booking.ticket?.resell_status === "listed" ? (
+                                    <Button size="sm" variant="outline" className="rounded-lg text-xs border-red-300 text-red-500" onClick={() => requestCancelResale(booking.ticket!.id)}>
                                       <XCircle className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
                                       {isAr ? "إلغاء البيع" : "Cancel"}
                                     </Button>
                                   ) : (
-                                    <Button size="sm" variant="default" className="rounded-lg text-xs bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90" onClick={() => handleListForResale(booking.ticket!)}>
+                                    <Button size="sm" variant="default" className="rounded-lg text-xs bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90" onClick={() => requestListForResale(booking)}>
                                       <ArrowRightLeft className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
                                       {isAr ? "إعادة بيع" : "Resell"}
                                     </Button>
@@ -690,6 +751,52 @@ const MyTickets = () => {
           )}
         </DialogContent>
       </Dialog>
+      {/* Confirm Resell */}
+      <AlertDialog open={confirmResellOpen} onOpenChange={setConfirmResellOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isAr ? "هل أنت متأكد أنك تريد إعادة البيع؟" : "Are you sure you want to resell?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isAr
+                ? `سيتم عرض حجزك "${pendingResellBooking?.item_name ?? ""}" في سوق إعادة البيع. يمكنك إلغاء العرض في أي وقت قبل البيع.`
+                : `Your booking "${pendingResellBooking?.item_name ?? ""}" will be listed on the resale marketplace. You can cancel the listing anytime before it sells.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isAr ? "تراجع" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={proceedToResellDialog}
+              className="bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90"
+            >
+              {isAr ? "نعم، متابعة" : "Yes, continue"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Cancel Resale */}
+      <AlertDialog open={confirmCancelOpen} onOpenChange={setConfirmCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isAr ? "إلغاء عرض البيع؟" : "Cancel resale listing?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isAr
+                ? "سيتم إزالة التذكرة من سوق إعادة البيع."
+                : "The ticket will be removed from the resale marketplace."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isAr ? "تراجع" : "Back"}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelResale} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isAr ? "نعم، إلغاء" : "Yes, cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
