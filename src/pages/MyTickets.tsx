@@ -64,6 +64,7 @@ interface TicketRow {
   is_valid: boolean | null;
   is_resellable: boolean | null;
   resell_status: string | null;
+  resell_price: number | null;
   qr_code: string | null;
   reservation_id: string | null;
   user_id: string;
@@ -95,6 +96,11 @@ const MyTickets = () => {
   // Confirm cancel resale
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [pendingCancelTicketId, setPendingCancelTicketId] = useState<string | null>(null);
+
+  // Buy ticket
+  const [confirmBuyOpen, setConfirmBuyOpen] = useState(false);
+  const [pendingBuyTicket, setPendingBuyTicket] = useState<TicketRow | null>(null);
+  const [buying, setBuying] = useState(false);
 
   // QR dialog
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -278,6 +284,7 @@ const MyTickets = () => {
         .update({
           is_resellable: true,
           resell_status: "listed",
+          resell_price: Number(resellPrice),
         })
         .eq("id", selectedTicketForResell.id);
 
@@ -317,6 +324,65 @@ const MyTickets = () => {
     } finally {
       setConfirmCancelOpen(false);
       setPendingCancelTicketId(null);
+    }
+  };
+
+  const requestBuyTicket = (ticket: TicketRow) => {
+    setPendingBuyTicket(ticket);
+    setConfirmBuyOpen(true);
+  };
+
+  const handleBuyTicket = async () => {
+    if (!pendingBuyTicket || !userId) return;
+    setBuying(true);
+    try {
+      const sellerId = pendingBuyTicket.user_id;
+      const price = Number(pendingBuyTicket.resell_price ?? 0);
+
+      // Transfer ownership + mark as sold
+      const { error: updateErr } = await supabase
+        .from("tickets")
+        .update({
+          user_id: userId,
+          is_resellable: false,
+          resell_status: "sold",
+        })
+        .eq("id", pendingBuyTicket.id)
+        .eq("resell_status", "listed");
+
+      if (updateErr) throw updateErr;
+
+      // Record payment for the buyer
+      const { error: payErr } = await supabase.from("payments").insert({
+        user_id: userId,
+        amount: price,
+        currency: "SAR",
+        status: "completed",
+        payment_method: "mada",
+        transaction_id: `RESALE-${Date.now().toString(36).toUpperCase()}`,
+      } as any);
+      if (payErr) console.warn("Payment insert warning:", payErr);
+
+      // Notify seller
+      await supabase.from("notifications").insert({
+        user_id: sellerId,
+        title: isAr ? "تم بيع تذكرتك" : "Your ticket was sold",
+        message: isAr
+          ? `تم بيع تذكرتك "${pendingBuyTicket.event_name}" بمبلغ ${price} ر.س`
+          : `Your ticket "${pendingBuyTicket.event_name}" was sold for ${price} SAR`,
+        type: "resale",
+      } as any);
+
+      toast.success(isAr ? "تم شراء التذكرة بنجاح 🎉" : "Ticket purchased successfully 🎉");
+      setConfirmBuyOpen(false);
+      setPendingBuyTicket(null);
+      await Promise.all([fetchMyTickets(userId), fetchResaleTickets()]);
+      setActiveTab("bookings");
+    } catch (error) {
+      console.error("Error buying ticket:", error);
+      toast.error(isAr ? "تعذر إتمام الشراء" : "Could not complete purchase");
+    } finally {
+      setBuying(false);
     }
   };
 
@@ -627,8 +693,17 @@ const MyTickets = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-4 shrink-0">
+                              <div className="text-right rtl:text-left">
+                                <div className="text-xl font-bold text-primary">
+                                  {ticket.resell_price ?? 0} {isAr ? "ر.س" : "SAR"}
+                                </div>
+                                <div className="text-xs text-muted-foreground">{isAr ? "سعر إعادة البيع" : "Resale price"}</div>
+                              </div>
                               {ticket.user_id !== userId && (
-                                <Button className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90">
+                                <Button
+                                  className="rounded-xl bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90"
+                                  onClick={() => requestBuyTicket(ticket)}
+                                >
                                   {isAr ? "اشترِ الآن" : "Buy Now"}
                                 </Button>
                               )}
@@ -793,6 +868,37 @@ const MyTickets = () => {
             <AlertDialogCancel>{isAr ? "تراجع" : "Back"}</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelResale} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {isAr ? "نعم، إلغاء" : "Yes, cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Buy Ticket */}
+      <AlertDialog open={confirmBuyOpen} onOpenChange={(o) => !buying && setConfirmBuyOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isAr ? "تأكيد شراء التذكرة" : "Confirm ticket purchase"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingBuyTicket && (
+                <>
+                  {isAr
+                    ? `هل أنت متأكد من شراء تذكرة "${pendingBuyTicket.event_name}" بمبلغ ${pendingBuyTicket.resell_price ?? 0} ر.س؟ سيتم نقل ملكية التذكرة إليك فوراً وتسجيل عملية الدفع.`
+                    : `Are you sure you want to buy "${pendingBuyTicket.event_name}" for ${pendingBuyTicket.resell_price ?? 0} SAR? Ownership will be transferred to you and the payment will be recorded.`}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={buying}>{isAr ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleBuyTicket(); }}
+              disabled={buying}
+              className="bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90"
+            >
+              {buying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isAr ? "تأكيد الشراء" : "Confirm purchase"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

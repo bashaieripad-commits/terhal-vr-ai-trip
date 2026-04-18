@@ -406,6 +406,7 @@ export type Database = {
           is_resellable: boolean | null
           is_valid: boolean | null
           qr_code: string | null
+          resell_price: number | null
           resell_status: string | null
           reservation_id: string | null
           ticket_number: string
@@ -420,6 +421,7 @@ export type Database = {
           is_resellable?: boolean | null
           is_valid?: boolean | null
           qr_code?: string | null
+          resell_price?: number | null
           resell_status?: string | null
           reservation_id?: string | null
           ticket_number: string
@@ -434,6 +436,7 @@ export type Database = {
           is_resellable?: boolean | null
           is_valid?: boolean | null
           qr_code?: string | null
+          resell_price?: number | null
           resell_status?: string | null
           reservation_id?: string | null
           ticket_number?: string
