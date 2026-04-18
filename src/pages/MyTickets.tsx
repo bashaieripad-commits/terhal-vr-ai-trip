@@ -84,8 +84,17 @@ const MyTickets = () => {
   // Resell dialog
   const [resellDialogOpen, setResellDialogOpen] = useState(false);
   const [selectedTicketForResell, setSelectedTicketForResell] = useState<TicketRow | null>(null);
+  const [selectedBookingForResell, setSelectedBookingForResell] = useState<Reservation | null>(null);
   const [resellPrice, setResellPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Confirm resell
+  const [confirmResellOpen, setConfirmResellOpen] = useState(false);
+  const [pendingResellBooking, setPendingResellBooking] = useState<(Reservation & { ticket?: TicketRow }) | null>(null);
+
+  // Confirm cancel resale
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+  const [pendingCancelTicketId, setPendingCancelTicketId] = useState<string | null>(null);
 
   // QR dialog
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
