@@ -279,6 +279,7 @@ const MyTickets = () => {
         .update({
           is_resellable: true,
           resell_status: "listed",
+          resell_price: Number(resellPrice),
         })
         .eq("id", selectedTicketForResell.id);
 
