@@ -14,40 +14,66 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // If already logged in as admin, redirect straight to dashboard
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active || !session?.user) return;
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (active && roleData) navigate("/admin/dashboard", { replace: true });
+    })();
+    return () => { active = false; };
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
 
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
-      if (authError) throw authError;
-
-      if (authData.user) {
-        // Check if user has admin role - block regular users
-        const { data: roleData, error: roleError } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", authData.user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-
-        if (roleError || !roleData) {
-          await supabase.auth.signOut();
-          toast.error("هذا الحساب مخصص للمستخدمين العاديين. لا يمكنك الدخول من بوابة الموظفين.");
-          setLoading(false);
-          return;
-        }
-
-        toast.success("تم تسجيل الدخول بنجاح");
-        navigate("/admin/dashboard");
+      if (authError) {
+        toast.error("بيانات الدخول غير صحيحة");
+        setLoading(false);
+        return;
       }
+
+      if (!authData.user) {
+        toast.error("فشل تسجيل الدخول");
+        setLoading(false);
+        return;
+      }
+
+      // Check admin role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authData.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (!roleData) {
+        await supabase.auth.signOut();
+        toast.error("هذا الحساب ليس لديه صلاحيات المسؤول");
+        setLoading(false);
+        return;
+      }
+
+      try { localStorage.setItem("isAdmin", "true"); } catch {}
+      toast.success("تم تسجيل الدخول بنجاح");
+      navigate("/admin/dashboard", { replace: true });
     } catch (error: any) {
-      toast.error(error.message || "خطأ في تسجيل الدخول");
-    } finally {
+      toast.error(error?.message || "خطأ في تسجيل الدخول");
       setLoading(false);
     }
   };
