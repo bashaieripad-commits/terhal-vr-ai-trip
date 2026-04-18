@@ -751,6 +751,52 @@ const MyTickets = () => {
           )}
         </DialogContent>
       </Dialog>
+      {/* Confirm Resell */}
+      <AlertDialog open={confirmResellOpen} onOpenChange={setConfirmResellOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isAr ? "هل أنت متأكد أنك تريد إعادة البيع؟" : "Are you sure you want to resell?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isAr
+                ? `سيتم عرض حجزك "${pendingResellBooking?.item_name ?? ""}" في سوق إعادة البيع. يمكنك إلغاء العرض في أي وقت قبل البيع.`
+                : `Your booking "${pendingResellBooking?.item_name ?? ""}" will be listed on the resale marketplace. You can cancel the listing anytime before it sells.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isAr ? "تراجع" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={proceedToResellDialog}
+              className="bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90"
+            >
+              {isAr ? "نعم، متابعة" : "Yes, continue"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Cancel Resale */}
+      <AlertDialog open={confirmCancelOpen} onOpenChange={setConfirmCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isAr ? "إلغاء عرض البيع؟" : "Cancel resale listing?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isAr
+                ? "سيتم إزالة التذكرة من سوق إعادة البيع."
+                : "The ticket will be removed from the resale marketplace."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isAr ? "تراجع" : "Back"}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelResale} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isAr ? "نعم، إلغاء" : "Yes, cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
