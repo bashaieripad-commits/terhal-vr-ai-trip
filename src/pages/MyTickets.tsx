@@ -97,6 +97,11 @@ const MyTickets = () => {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [pendingCancelTicketId, setPendingCancelTicketId] = useState<string | null>(null);
 
+  // Buy ticket
+  const [confirmBuyOpen, setConfirmBuyOpen] = useState(false);
+  const [pendingBuyTicket, setPendingBuyTicket] = useState<TicketRow | null>(null);
+  const [buying, setBuying] = useState(false);
+
   // QR dialog
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrTicket, setQrTicket] = useState<{ ticketNumber: string; eventName: string; date: string; bookingName: string } | null>(null);
