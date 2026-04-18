@@ -221,9 +221,51 @@ const MyTickets = () => {
     setResaleTickets(data || []);
   };
 
-  const handleListForResale = (ticket: TicketRow) => {
+  const requestListForResale = (booking: Reservation & { ticket?: TicketRow }) => {
+    setPendingResellBooking(booking);
+    setConfirmResellOpen(true);
+  };
+
+  const proceedToResellDialog = async () => {
+    if (!pendingResellBooking || !userId) return;
+    setConfirmResellOpen(false);
+
+    let ticket = pendingResellBooking.ticket;
+
+    // Auto-create a ticket for this reservation if missing (e.g. flights/hotels)
+    if (!ticket) {
+      const ticketNumber = `TRH-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const eventDate =
+        pendingResellBooking.check_in ||
+        pendingResellBooking.created_at ||
+        new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from("tickets")
+        .insert({
+          user_id: userId,
+          reservation_id: pendingResellBooking.id,
+          ticket_number: ticketNumber,
+          event_name: pendingResellBooking.item_name,
+          event_date: eventDate,
+          is_valid: true,
+          is_resellable: false,
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        console.error("Error creating ticket:", error);
+        toast.error(isAr ? "تعذر إنشاء التذكرة" : "Could not create ticket");
+        return;
+      }
+      ticket = data as TicketRow;
+      await fetchMyTickets(userId);
+    }
+
     setSelectedTicketForResell(ticket);
-    setResellPrice("");
+    setSelectedBookingForResell(pendingResellBooking);
+    setResellPrice(String(pendingResellBooking.total_price ?? ""));
     setResellDialogOpen(true);
   };
 
@@ -253,12 +295,18 @@ const MyTickets = () => {
     }
   };
 
-  const handleCancelResale = async (ticketId: string) => {
+  const requestCancelResale = (ticketId: string) => {
+    setPendingCancelTicketId(ticketId);
+    setConfirmCancelOpen(true);
+  };
+
+  const handleCancelResale = async () => {
+    if (!pendingCancelTicketId) return;
     try {
       const { error } = await supabase
         .from("tickets")
         .update({ is_resellable: false, resell_status: null })
-        .eq("id", ticketId);
+        .eq("id", pendingCancelTicketId);
       if (error) throw error;
       toast.success(isAr ? "تم إلغاء عرض البيع" : "Resale listing cancelled");
       if (userId) {
@@ -266,6 +314,9 @@ const MyTickets = () => {
       }
     } catch (error) {
       toast.error(isAr ? "حدث خطأ" : "An error occurred");
+    } finally {
+      setConfirmCancelOpen(false);
+      setPendingCancelTicketId(null);
     }
   };
 
