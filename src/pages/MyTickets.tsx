@@ -64,6 +64,7 @@ interface TicketRow {
   is_valid: boolean | null;
   is_resellable: boolean | null;
   resell_status: string | null;
+  resell_price: number | null;
   qr_code: string | null;
   reservation_id: string | null;
   user_id: string;
