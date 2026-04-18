@@ -537,14 +537,14 @@ const MyTickets = () => {
                                     QR
                                   </Button>
                                 )}
-                                {booking.ticket && booking.status === "confirmed" && (
-                                  booking.ticket.resell_status === "listed" ? (
-                                    <Button size="sm" variant="outline" className="rounded-lg text-xs border-red-300 text-red-500" onClick={() => handleCancelResale(booking.ticket!.id)}>
+                                {booking.status === "confirmed" && (
+                                  booking.ticket?.resell_status === "listed" ? (
+                                    <Button size="sm" variant="outline" className="rounded-lg text-xs border-red-300 text-red-500" onClick={() => requestCancelResale(booking.ticket!.id)}>
                                       <XCircle className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
                                       {isAr ? "إلغاء البيع" : "Cancel"}
                                     </Button>
                                   ) : (
-                                    <Button size="sm" variant="default" className="rounded-lg text-xs bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90" onClick={() => handleListForResale(booking.ticket!)}>
+                                    <Button size="sm" variant="default" className="rounded-lg text-xs bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90" onClick={() => requestListForResale(booking)}>
                                       <ArrowRightLeft className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
                                       {isAr ? "إعادة بيع" : "Resell"}
                                     </Button>
