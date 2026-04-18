@@ -872,6 +872,37 @@ const MyTickets = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Confirm Buy Ticket */}
+      <AlertDialog open={confirmBuyOpen} onOpenChange={(o) => !buying && setConfirmBuyOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isAr ? "تأكيد شراء التذكرة" : "Confirm ticket purchase"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingBuyTicket && (
+                <>
+                  {isAr
+                    ? `هل أنت متأكد من شراء تذكرة "${pendingBuyTicket.event_name}" بمبلغ ${pendingBuyTicket.resell_price ?? 0} ر.س؟ سيتم نقل ملكية التذكرة إليك فوراً وتسجيل عملية الدفع.`
+                    : `Are you sure you want to buy "${pendingBuyTicket.event_name}" for ${pendingBuyTicket.resell_price ?? 0} SAR? Ownership will be transferred to you and the payment will be recorded.`}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={buying}>{isAr ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleBuyTicket(); }}
+              disabled={buying}
+              className="bg-gradient-to-r from-terracotta to-sandy-gold hover:opacity-90"
+            >
+              {buying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isAr ? "تأكيد الشراء" : "Confirm purchase"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
