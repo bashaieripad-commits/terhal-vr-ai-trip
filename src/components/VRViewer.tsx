@@ -150,15 +150,26 @@ export const VRViewer = () => {
             )}
           </AnimatePresence>
 
-          <iframe
-            key={currentScene.videoId + activeScene}
-            className="absolute inset-0 w-full h-full"
-            src={`https://www.youtube.com/embed/${currentScene.videoId}?autoplay=1&mute=1&loop=1&playlist=${currentScene.videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
-            title={currentScene.titleEn}
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-            style={{ border: 0 }}
-          />
+          {/* Wrapper hides YouTube branding by scaling the iframe beyond visible area */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <iframe
+              key={currentScene.videoId + activeScene}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+              style={{
+                width: "calc(100% + 200px)",
+                height: "calc(100% + 200px)",
+                border: 0,
+              }}
+              src={`https://www.youtube-nocookie.com/embed/${currentScene.videoId}?autoplay=1&mute=1&loop=1&playlist=${currentScene.videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3&fs=0&cc_load_policy=0&autohide=1&color=white`}
+              title={currentScene.titleEn}
+              allow="autoplay; encrypted-media"
+              allowFullScreen={false}
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+            {/* Transparent overlay to block any residual YouTube UI clicks */}
+            <div className="absolute inset-0 z-[1]" />
+          </div>
 
           {/* Bottom controls overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-foreground/70 to-transparent z-10">
