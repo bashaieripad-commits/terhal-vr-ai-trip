@@ -43,17 +43,36 @@ const scenes = [
 
 export const VRViewer = () => {
   const [activeScene, setActiveScene] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [videoReady, setVideoReady] = useState(false);
   const { language } = useLanguage();
+  const readyTimerRef = useRef<number | null>(null);
 
   const handleSceneChange = (index: number) => {
     if (index === activeScene) return;
+    setVideoReady(false);
     setIsLoading(true);
     setActiveScene(index);
-    setTimeout(() => setIsLoading(false), 600);
   };
 
+  // When iframe reports load, give YouTube a brief moment to upgrade quality
+  // before fading the video in over the poster.
+  const handleIframeLoad = () => {
+    if (readyTimerRef.current) window.clearTimeout(readyTimerRef.current);
+    readyTimerRef.current = window.setTimeout(() => {
+      setVideoReady(true);
+      setIsLoading(false);
+    }, 1200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (readyTimerRef.current) window.clearTimeout(readyTimerRef.current);
+    };
+  }, []);
+
   const currentScene = scenes[activeScene];
+  const posterUrl = `https://i.ytimg.com/vi/${currentScene.videoId}/maxresdefault.jpg`;
 
   return (
     <div className="space-y-6">
