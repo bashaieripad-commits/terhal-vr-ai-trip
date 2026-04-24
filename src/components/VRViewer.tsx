@@ -171,15 +171,36 @@ export const VRViewer = () => {
 
           {/* Wrapper hides YouTube branding by scaling the iframe beyond visible area */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* High-quality blurred poster shown until video is ready */}
+            <div
+              className="absolute inset-0 transition-opacity duration-700 ease-out"
+              style={{
+                opacity: videoReady ? 0 : 1,
+                backgroundImage: `url(${posterUrl}), url(${currentScene.image})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                filter: "blur(12px) saturate(1.1)",
+                transform: "scale(1.1)",
+              }}
+              aria-hidden="true"
+            />
+            {/* Subtle dark wash over poster to match video tone */}
+            <div
+              className="absolute inset-0 bg-foreground/20 transition-opacity duration-700"
+              style={{ opacity: videoReady ? 0 : 1 }}
+            />
+
             <iframe
               key={currentScene.videoId + activeScene}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+              onLoad={handleIframeLoad}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-1000 ease-out"
               style={{
                 width: "calc(100% + 200px)",
                 height: "calc(100% + 200px)",
                 border: 0,
+                opacity: videoReady ? 1 : 0,
               }}
-              src={`https://www.youtube-nocookie.com/embed/${currentScene.videoId}?autoplay=1&mute=1&loop=1&playlist=${currentScene.videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3&fs=0&cc_load_policy=0&autohide=1&color=white`}
+              src={`https://www.youtube-nocookie.com/embed/${currentScene.videoId}?autoplay=1&mute=1&loop=1&playlist=${currentScene.videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3&fs=0&cc_load_policy=0&autohide=1&color=white&vq=hd1080&hd=1`}
               title={currentScene.titleEn}
               allow="autoplay; encrypted-media"
               allowFullScreen={false}
