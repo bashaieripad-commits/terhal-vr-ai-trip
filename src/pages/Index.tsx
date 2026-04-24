@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { FeaturedSection } from "@/components/FeaturedSection";
 import { VRViewer } from "@/components/VRViewer";
+import { VR360HotelsSection } from "@/components/vr360-hotels/VR360HotelsSection";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Eye, Shield, Bell, ArrowDown, Star, MapPin, Plane } from "lucide-react";
 import { Testimonials } from "@/components/Testimonials";
@@ -284,6 +285,9 @@ const Index = () => {
             </motion.div>
           </div>
         </section>
+
+        {/* VR 360 Hotel Experiences (isolated component) */}
+        <VR360HotelsSection />
 
         {/* Key Benefits */}
         <section className="py-20 bg-gradient-to-b from-background to-secondary/30" aria-labelledby="benefits-section-title">
