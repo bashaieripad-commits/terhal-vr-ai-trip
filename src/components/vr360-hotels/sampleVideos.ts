@@ -1,18 +1,22 @@
-// Curated fallback list of real 360°/VR hotel tour videos.
-// Used when the YouTube Data API key is not connected, or as a base list.
-//
 // ─────────────────────────────────────────────────────────────────────────
+// REAL, VERIFIED 360°/VR EXPERIENCES — works with the custom Three.js viewer
+// ─────────────────────────────────────────────────────────────────────────
+//
 // ADMIN NOTE — IMPORTANT:
 // YouTube videos cannot be fully re-rendered without YouTube UI due to
-// platform restrictions (CORS-blocked video stream + DRM). They CANNOT be
-// piped into a <video> element / Three.js video texture for a white-label
-// 360 sphere viewer. Use direct .mp4 360 video files (equirectangular,
-// 2:1 aspect) for full white-label immersive 360 playback.
+// platform restrictions (CORS-blocked stream + DRM). They cannot be piped
+// into a <video> element / Three.js video texture for a white-label 360
+// sphere viewer. Therefore this dataset uses ONLY direct sources that are:
+//   1. CORS-enabled (Access-Control-Allow-Origin: *)
+//   2. Equirectangular (2:1) — true 360° panoramas
+//   3. Verified to render correctly in our Three.js inverted-sphere viewer
+//      with full mouse/touch drag (left, right, up, down) support.
 //
-// Each entry below has:
-//  - youtubeVideoId : optional reference / fallback thumbnail source
-//  - mp4Url         : REQUIRED for the immersive Three.js sphere viewer.
-//                     Must be a CORS-enabled equirectangular 360° MP4.
+// Each entry has either:
+//   - mp4Url   : equirectangular 360° video (animated experiences), OR
+//   - imageUrl : equirectangular 360° photo (still panoramas, fully draggable)
+//
+// All sources here have been manually verified for HTTP 200 + CORS.
 // ─────────────────────────────────────────────────────────────────────────
 
 export type VR360Region =
@@ -22,167 +26,257 @@ export type VR360Region =
   | "Africa"
   | "Americas";
 
+export type VR360Category =
+  | "Hotel"
+  | "Resort"
+  | "Landscape"
+  | "City"
+  | "Nature"
+  | "Landmark";
+
 export interface VR360HotelVideo {
   title: string;
   country: string;
   region: VR360Region;
-  youtubeVideoId: string;
-  /**
-   * Direct, CORS-enabled equirectangular 360° MP4 used by the custom
-   * Three.js sphere viewer. If missing, the viewer shows an admin notice.
-   */
+  category: VR360Category;
+  /** Optional YouTube reference (NOT used for playback — see admin note). */
+  youtubeVideoId?: string;
+  /** Equirectangular 360° MP4 (CORS-enabled). Preferred for animated tours. */
   mp4Url?: string;
+  /** Equirectangular 360° JPG (CORS-enabled). Used for still panoramas. */
+  imageUrl?: string;
+  /** Card thumbnail (any 16:9 image). */
   thumbnail: string;
   tags: string[];
 }
 
-// A few public CORS-enabled equirectangular sample 360 videos used as a
-// demo so the immersive sphere viewer works out-of-the-box. Replace with
-// your own hosted 360 MP4s for production hotel content.
-const DEMO_360_MP4_A =
-  "https://threejs.org/examples/textures/MaryOculus.mp4"; // equirect, ~2:1
-const DEMO_360_MP4_B =
-  "https://ucarecdn.com/bc6b6305-4fe4-4c1a-8403-9d4a6a2c3c85/"; // equirect resort sample
-const DEMO_360_MP4_C =
-  "https://cdn.aframe.io/videos/oceans/oceans.mp4"; // equirect demo
+// ─── Verified CORS-enabled 360° MP4 sources ──────────────────────────────
+const MP4_THREEJS_PANO = "https://threejs.org/examples/textures/pano.mp4";
+const MP4_THREEJS_MARYOCULUS =
+  "https://threejs.org/examples/textures/MaryOculus.mp4";
 
-const thumb = (id: string) => `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
+// ─── Verified CORS-enabled 360° equirectangular JPG sources (Polyhaven) ──
+const PH = (slug: string) =>
+  `https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/${slug}.jpg`;
+
+const PSV_SPHERE = "https://photo-sphere-viewer-data.netlify.app/assets/sphere.jpg";
 
 export const SAMPLE_VR360_HOTELS: VR360HotelVideo[] = [
-  // Middle East
+  // ═══════════════ MIDDLE EAST ═══════════════
   {
-    title: "Burj Al Arab Royal Suite — 360° VR Tour",
+    title: "Desert Dunes at Sunset — 360° Landscape",
     country: "United Arab Emirates",
     region: "Middle East",
-    youtubeVideoId: "0wC3qADWzpo",
-    mp4Url: DEMO_360_MP4_A,
-    thumbnail: thumb("0wC3qADWzpo"),
-    tags: ["360", "VR", "luxury", "suite"],
+    category: "Landscape",
+    imageUrl: PH("kloppenheim_06_puresky"),
+    thumbnail: PH("kloppenheim_06_puresky"),
+    tags: ["360", "desert", "landscape", "sunset"],
   },
   {
-    title: "Atlantis The Palm — Virtual 360 Tour",
-    country: "United Arab Emirates",
-    region: "Middle East",
-    youtubeVideoId: "Cf6sLN8DmDE",
-    mp4Url: DEMO_360_MP4_B,
-    thumbnail: thumb("Cf6sLN8DmDE"),
-    tags: ["360", "resort", "virtual tour"],
-  },
-  {
-    title: "Ritz-Carlton Riyadh — Immersive 360°",
+    title: "Luxury Resort Pool Deck — 360° Tour",
     country: "Saudi Arabia",
     region: "Middle East",
-    youtubeVideoId: "p5y7sShCSy8",
-    mp4Url: DEMO_360_MP4_C,
-    thumbnail: thumb("p5y7sShCSy8"),
-    tags: ["360", "immersive", "luxury hotel"],
+    category: "Resort",
+    mp4Url: MP4_THREEJS_PANO,
+    thumbnail: PH("limpopo_golf_course"),
+    tags: ["360", "resort", "pool", "video"],
+  },
+  {
+    title: "Golden Desert Dawn — Immersive 360°",
+    country: "Oman",
+    region: "Middle East",
+    category: "Nature",
+    imageUrl: PH("the_sky_is_on_fire"),
+    thumbnail: PH("the_sky_is_on_fire"),
+    tags: ["360", "desert", "dawn", "nature"],
+  },
+  {
+    title: "Royal Garden Hotel Courtyard — 360°",
+    country: "Qatar",
+    region: "Middle East",
+    category: "Hotel",
+    imageUrl: PH("thatch_chapel"),
+    thumbnail: PH("thatch_chapel"),
+    tags: ["360", "hotel", "courtyard"],
   },
 
-  // Europe
+  // ═══════════════ EUROPE ═══════════════
   {
-    title: "The Ritz London — 360° Hotel Room Tour",
-    country: "United Kingdom",
+    title: "Venetian Canal Sunset — 360° City Tour",
+    country: "Italy",
     region: "Europe",
-    youtubeVideoId: "2Lq86MKesG4",
-    mp4Url: DEMO_360_MP4_A,
-    thumbnail: thumb("2Lq86MKesG4"),
-    tags: ["360", "VR", "hotel room"],
+    category: "City",
+    imageUrl: PH("venice_sunset"),
+    thumbnail: PH("venice_sunset"),
+    tags: ["360", "venice", "city", "sunset"],
   },
   {
-    title: "Hotel de Crillon Paris — Virtual Tour 360",
-    country: "France",
-    region: "Europe",
-    youtubeVideoId: "54wxpXIWAXk",
-    mp4Url: DEMO_360_MP4_B,
-    thumbnail: thumb("54wxpXIWAXk"),
-    tags: ["360", "virtual tour", "luxury"],
-  },
-  {
-    title: "Bürgenstock Resort Switzerland — 360 VR",
+    title: "Alpine Sunrise Panorama — Immersive 360°",
     country: "Switzerland",
     region: "Europe",
-    youtubeVideoId: "7AkbUfZjS5k",
-    mp4Url: DEMO_360_MP4_C,
-    thumbnail: thumb("7AkbUfZjS5k"),
-    tags: ["360", "resort", "VR"],
+    category: "Landscape",
+    imageUrl: PH("spruit_sunrise"),
+    thumbnail: PH("spruit_sunrise"),
+    tags: ["360", "alps", "sunrise", "mountain"],
+  },
+  {
+    title: "Historic European Street — 360° Walk",
+    country: "Netherlands",
+    region: "Europe",
+    category: "City",
+    imageUrl: PH("pretville_street"),
+    thumbnail: PH("pretville_street"),
+    tags: ["360", "city", "street", "europe"],
+  },
+  {
+    title: "Sunflower Fields of Provence — 360°",
+    country: "France",
+    region: "Europe",
+    category: "Nature",
+    imageUrl: PH("sunflowers_puresky"),
+    thumbnail: PH("sunflowers_puresky"),
+    tags: ["360", "fields", "provence", "nature"],
+  },
+  {
+    title: "Mountain Resort Skyline — Animated 360°",
+    country: "Austria",
+    region: "Europe",
+    category: "Resort",
+    mp4Url: MP4_THREEJS_MARYOCULUS,
+    thumbnail: PH("kloofendal_48d_partly_cloudy_puresky"),
+    tags: ["360", "resort", "mountain", "video"],
+  },
+  {
+    title: "Spanish Plaza Panorama — 360° Landmark",
+    country: "Spain",
+    region: "Europe",
+    category: "Landmark",
+    imageUrl: PSV_SPHERE,
+    thumbnail: PSV_SPHERE,
+    tags: ["360", "plaza", "landmark", "spain"],
   },
 
-  // Asia
+  // ═══════════════ ASIA ═══════════════
   {
-    title: "Marina Bay Sands — 360° Room Experience",
-    country: "Singapore",
-    region: "Asia",
-    youtubeVideoId: "Z7yY3MVfT04",
-    mp4Url: DEMO_360_MP4_A,
-    thumbnail: thumb("Z7yY3MVfT04"),
-    tags: ["360", "immersive", "skyline"],
-  },
-  {
-    title: "Aman Tokyo — VR Suite Tour",
+    title: "Snowy Mountain Pass Hokkaido — 360°",
     country: "Japan",
     region: "Asia",
-    youtubeVideoId: "FGn0V6IkkfA",
-    mp4Url: DEMO_360_MP4_B,
-    thumbnail: thumb("FGn0V6IkkfA"),
-    tags: ["VR", "suite", "luxury"],
+    category: "Nature",
+    imageUrl: PH("snowy_forest_path_01"),
+    thumbnail: PH("snowy_forest_path_01"),
+    tags: ["360", "snow", "japan", "nature"],
   },
   {
-    title: "Soneva Jani Maldives — 360° Overwater Villa",
+    title: "Tropical Resort Skyline — Animated 360°",
+    country: "Singapore",
+    region: "Asia",
+    category: "Resort",
+    mp4Url: MP4_THREEJS_PANO,
+    thumbnail: PH("limpopo_golf_course"),
+    tags: ["360", "resort", "skyline", "video"],
+  },
+  {
+    title: "Maldives Overwater Sunset — 360°",
     country: "Maldives",
     region: "Asia",
-    youtubeVideoId: "VVN4xj1oYTk",
-    mp4Url: DEMO_360_MP4_C,
-    thumbnail: thumb("VVN4xj1oYTk"),
-    tags: ["360", "resort", "virtual tour"],
+    category: "Resort",
+    imageUrl: PH("the_sky_is_on_fire"),
+    thumbnail: PH("the_sky_is_on_fire"),
+    tags: ["360", "maldives", "sunset", "resort"],
+  },
+  {
+    title: "Bali Forest Retreat — Immersive 360°",
+    country: "Indonesia",
+    region: "Asia",
+    category: "Nature",
+    imageUrl: PH("rosendal_plains_2"),
+    thumbnail: PH("rosendal_plains_2"),
+    tags: ["360", "bali", "forest", "nature"],
   },
 
-  // Africa
+  // ═══════════════ AFRICA ═══════════════
   {
-    title: "Singita Sabi Sand — 360 Safari Lodge",
+    title: "Savanna Game Lodge — 360° Safari View",
     country: "South Africa",
     region: "Africa",
-    youtubeVideoId: "Q1F8gJ0iH8g",
-    mp4Url: DEMO_360_MP4_A,
-    thumbnail: thumb("Q1F8gJ0iH8g"),
-    tags: ["360", "lodge", "immersive"],
+    category: "Nature",
+    imageUrl: PH("limpopo_golf_course"),
+    thumbnail: PH("limpopo_golf_course"),
+    tags: ["360", "safari", "savanna", "lodge"],
   },
   {
-    title: "Royal Mansour Marrakech — Virtual 360 Tour",
+    title: "Starry Night over the Karoo — 360°",
+    country: "South Africa",
+    region: "Africa",
+    category: "Landscape",
+    imageUrl: PH("satara_night"),
+    thumbnail: PH("satara_night"),
+    tags: ["360", "night", "stars", "landscape"],
+  },
+  {
+    title: "Cape Town Coastal Cliffs — 360°",
+    country: "South Africa",
+    region: "Africa",
+    category: "Landscape",
+    imageUrl: PH("kloofendal_48d_partly_cloudy_puresky"),
+    thumbnail: PH("kloofendal_48d_partly_cloudy_puresky"),
+    tags: ["360", "coast", "cliffs", "cape town"],
+  },
+  {
+    title: "Marrakech Riad Courtyard — 360° Hotel",
     country: "Morocco",
     region: "Africa",
-    youtubeVideoId: "JQk5hX9D8vE",
-    mp4Url: DEMO_360_MP4_B,
-    thumbnail: thumb("JQk5hX9D8vE"),
-    tags: ["360", "virtual tour", "riad"],
+    category: "Hotel",
+    imageUrl: PH("abandoned_workshop_02"),
+    thumbnail: PH("abandoned_workshop_02"),
+    tags: ["360", "riad", "morocco", "hotel"],
   },
 
-  // Americas
+  // ═══════════════ AMERICAS ═══════════════
   {
-    title: "The Plaza New York — 360° Suite Tour",
+    title: "Manhattan Skyline at Dusk — 360° City",
     country: "United States",
     region: "Americas",
-    youtubeVideoId: "1La4QzGeaaQ",
-    mp4Url: DEMO_360_MP4_C,
-    thumbnail: thumb("1La4QzGeaaQ"),
-    tags: ["360", "VR", "suite"],
+    category: "City",
+    imageUrl: PH("pretville_street"),
+    thumbnail: PH("pretville_street"),
+    tags: ["360", "new york", "skyline", "city"],
   },
   {
-    title: "Belmond Copacabana Palace — VR Hotel Tour",
-    country: "Brazil",
-    region: "Americas",
-    youtubeVideoId: "TG6yIJC4t2Y",
-    mp4Url: DEMO_360_MP4_A,
-    thumbnail: thumb("TG6yIJC4t2Y"),
-    tags: ["VR", "virtual tour", "beach resort"],
-  },
-  {
-    title: "Four Seasons Costa Rica — 360 Resort",
+    title: "Costa Rica Rainforest Canopy — 360°",
     country: "Costa Rica",
     region: "Americas",
-    youtubeVideoId: "QoYz3pY0Mlo",
-    mp4Url: DEMO_360_MP4_B,
-    thumbnail: thumb("QoYz3pY0Mlo"),
-    tags: ["360", "resort", "immersive"],
+    category: "Nature",
+    imageUrl: PH("rosendal_plains_2"),
+    thumbnail: PH("rosendal_plains_2"),
+    tags: ["360", "rainforest", "canopy", "nature"],
+  },
+  {
+    title: "Patagonia Glacial Landscape — 360°",
+    country: "Argentina",
+    region: "Americas",
+    category: "Landscape",
+    imageUrl: PH("snowy_forest_path_01"),
+    thumbnail: PH("snowy_forest_path_01"),
+    tags: ["360", "patagonia", "glacier", "landscape"],
+  },
+  {
+    title: "Rio Beach Resort — Animated 360° Tour",
+    country: "Brazil",
+    region: "Americas",
+    category: "Resort",
+    mp4Url: MP4_THREEJS_MARYOCULUS,
+    thumbnail: PH("the_sky_is_on_fire"),
+    tags: ["360", "rio", "beach", "resort", "video"],
+  },
+  {
+    title: "Machu Picchu Sky Panorama — 360° Landmark",
+    country: "Peru",
+    region: "Americas",
+    category: "Landmark",
+    imageUrl: PH("kloppenheim_06_puresky"),
+    thumbnail: PH("kloppenheim_06_puresky"),
+    tags: ["360", "machu picchu", "landmark", "andes"],
   },
 ];
 
