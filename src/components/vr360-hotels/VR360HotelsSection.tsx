@@ -29,7 +29,6 @@ export const VR360HotelsSection = () => {
   const [videos, setVideos] = useState<VR360HotelVideo[]>(SAMPLE_VR360_HOTELS);
   const [filter, setFilter] = useState<FilterValue>("All");
   const [activeVideo, setActiveVideo] = useState<VR360HotelVideo | null>(null);
-  const [playerReady, setPlayerReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,15 +45,8 @@ export const VR360HotelsSection = () => {
     return videos.filter((v) => v.region === filter);
   }, [videos, filter]);
 
-  const openVideo = (v: VR360HotelVideo) => {
-    setPlayerReady(false);
-    setActiveVideo(v);
-  };
-
-  const closeVideo = () => {
-    setActiveVideo(null);
-    setPlayerReady(false);
-  };
+  const openVideo = (v: VR360HotelVideo) => setActiveVideo(v);
+  const closeVideo = () => setActiveVideo(null);
 
   const filters: FilterValue[] = ["All", ...VR360_REGIONS];
 
