@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Maximize2, Minimize2, Glasses, MapPin, Loader2 } from "lucide-react";
+import * as THREE from "three";
+import {
+  X,
+  Maximize2,
+  Minimize2,
+  Glasses,
+  MapPin,
+  Loader2,
+  Volume2,
+  VolumeX,
+  Pause,
+  Play,
+  AlertTriangle,
+} from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import type { VR360HotelVideo } from "./sampleVideos";
@@ -11,18 +24,19 @@ interface ImmersiveVR360ViewerProps {
 }
 
 /**
- * Full-screen immersive 360° viewer.
+ * White-label immersive 360° viewer.
  *
- * Strategy:
- * - YouTube 360° videos already render an interactive 360 sphere inside the
- *   official embed when controls are enabled. We use the YouTube IFrame embed
- *   with `enablejsapi=1`, controls visible, and full sensor permissions
- *   (gyroscope, accelerometer) so users can drag/swipe to look around on
- *   desktop and mobile, and use device motion on mobile.
- * - The viewer is rendered through a portal at the document root so it covers
- *   the entire viewport without being affected by parent transforms or overflow.
- * - Self-hosted 360 videos would use A-Frame/Three.js — left as a future hook;
- *   this viewer focuses on YouTube 360, matching the section's data source.
+ * Renders an equirectangular MP4 onto the inside of a sphere using Three.js,
+ * with mouse-drag (desktop) and touch-drag (mobile) look-around in all
+ * directions. No external video platform branding is shown.
+ *
+ * IMPORTANT — YouTube limitation:
+ * YouTube videos cannot be fully re-rendered without YouTube UI due to
+ * platform restrictions (CORS-blocked stream + DRM). They cannot be piped
+ * into a <video> element / Three.js video texture. Therefore each VR360
+ * entry must include `mp4Url` pointing at a CORS-enabled equirectangular
+ * 360° MP4 for full white-label immersive playback. If `mp4Url` is missing,
+ * an admin notice is displayed instead of the YouTube embed.
  */
 export const ImmersiveVR360Viewer = ({
   video,
@@ -30,27 +44,16 @@ export const ImmersiveVR360Viewer = ({
 }: ImmersiveVR360ViewerProps) => {
   const { language } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
+  const mountRef = useRef<HTMLDivElement>(null);
+  const videoElRef = useRef<HTMLVideoElement | null>(null);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [iframeLoaded, setIframeLoaded] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [muted, setMuted] = useState(true);
+  const [playing, setPlaying] = useState(true);
 
-  // Reset state whenever a new video opens
-  useEffect(() => {
-    if (video) {
-      setIframeLoaded(false);
-      setReady(false);
-    }
-  }, [video?.youtubeVideoId]);
-
-  // Smooth fade-in: wait a beat after iframe load so YouTube has time to
-  // upgrade quality before revealing the player.
-  useEffect(() => {
-    if (!iframeLoaded) return;
-    const t = window.setTimeout(() => setReady(true), 900);
-    return () => window.clearTimeout(t);
-  }, [iframeLoaded]);
-
-  // Lock body scroll while the viewer is open
+  // Lock scroll while open
   useEffect(() => {
     if (!video) return;
     const prev = document.body.style.overflow;
@@ -91,16 +94,181 @@ export const ImmersiveVR360Viewer = ({
     }
   };
 
-  if (!video) return null;
+  // ─── Three.js scene setup (only when an mp4Url is present) ──────────────
+  useEffect(() => {
+    if (!video || !mountRef.current || !video.mp4Url) return;
 
-  // Build YouTube 360-friendly embed URL.
-  // Controls are intentionally KEPT VISIBLE (controls=1) because YouTube's
-  // own 360 drag/touch interaction requires the standard player UI.
-  const embedSrc =
-    `https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}` +
-    `?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1` +
-    `&iv_load_policy=3&cc_load_policy=0&fs=1&enablejsapi=1` +
-    `&vq=hd1080&hd=1`;
+    setLoaded(false);
+    setError(null);
+
+    const mount = mountRef.current;
+    const width = mount.clientWidth;
+    const height = mount.clientHeight;
+
+    // Scene
+    const scene = new THREE.Scene();
+
+    // Camera at center of sphere
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1100);
+    camera.position.set(0, 0, 0.01);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height);
+    mount.appendChild(renderer.domElement);
+    renderer.domElement.style.touchAction = "none";
+    renderer.domElement.style.cursor = "grab";
+
+    // <video> element as texture source
+    const videoEl = document.createElement("video");
+    videoEl.crossOrigin = "anonymous";
+    videoEl.loop = true;
+    videoEl.muted = true; // required for autoplay
+    videoEl.playsInline = true;
+    videoEl.setAttribute("webkit-playsinline", "true");
+    videoEl.preload = "auto";
+    videoEl.src = video.mp4Url;
+    videoElRef.current = videoEl;
+
+    const onCanPlay = () => {
+      setLoaded(true);
+      videoEl.play().catch(() => {
+        // Autoplay can fail; user can press the play toggle.
+        setPlaying(false);
+      });
+    };
+    const onErr = () => {
+      setError(
+        language === "ar"
+          ? "تعذّر تحميل فيديو 360. تأكد من رابط MP4 يدعم CORS."
+          : "Failed to load 360 video. Ensure the MP4 URL is CORS-enabled."
+      );
+    };
+    videoEl.addEventListener("canplay", onCanPlay);
+    videoEl.addEventListener("error", onErr);
+
+    const texture = new THREE.VideoTexture(videoEl);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+
+    // Inverted sphere — texture visible from the inside
+    const geometry = new THREE.SphereGeometry(500, 60, 40);
+    geometry.scale(-1, 1, 1);
+
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    const sphere = new THREE.Mesh(geometry, material);
+    scene.add(sphere);
+
+    // ─── Drag-to-look controls (mouse + touch) ─────────────────────────────
+    let lon = 0; // horizontal angle (degrees)
+    let lat = 0; // vertical angle (degrees)
+    let isDown = false;
+    let downX = 0;
+    let downY = 0;
+    let startLon = 0;
+    let startLat = 0;
+
+    const onPointerDown = (e: PointerEvent) => {
+      isDown = true;
+      downX = e.clientX;
+      downY = e.clientY;
+      startLon = lon;
+      startLat = lat;
+      renderer.domElement.style.cursor = "grabbing";
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDown) return;
+      // 0.1 deg per pixel feels natural for a 360 sphere
+      lon = startLon - (e.clientX - downX) * 0.15;
+      lat = startLat + (e.clientY - downY) * 0.15;
+      lat = Math.max(-85, Math.min(85, lat));
+    };
+    const onPointerUp = (e: PointerEvent) => {
+      isDown = false;
+      renderer.domElement.style.cursor = "grab";
+      (e.target as Element).releasePointerCapture?.(e.pointerId);
+    };
+
+    renderer.domElement.addEventListener("pointerdown", onPointerDown);
+    renderer.domElement.addEventListener("pointermove", onPointerMove);
+    renderer.domElement.addEventListener("pointerup", onPointerUp);
+    renderer.domElement.addEventListener("pointercancel", onPointerUp);
+    renderer.domElement.addEventListener("pointerleave", onPointerUp);
+
+    // ─── Animation loop ────────────────────────────────────────────────────
+    let frame = 0;
+    const animate = () => {
+      frame = requestAnimationFrame(animate);
+      const phi = THREE.MathUtils.degToRad(90 - lat);
+      const theta = THREE.MathUtils.degToRad(lon);
+      const target = new THREE.Vector3(
+        500 * Math.sin(phi) * Math.cos(theta),
+        500 * Math.cos(phi),
+        500 * Math.sin(phi) * Math.sin(theta)
+      );
+      camera.lookAt(target);
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // ─── Resize ────────────────────────────────────────────────────────────
+    const onResize = () => {
+      if (!mount) return;
+      const w = mount.clientWidth;
+      const h = mount.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", onResize);
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      renderer.domElement.removeEventListener("pointermove", onPointerMove);
+      renderer.domElement.removeEventListener("pointerup", onPointerUp);
+      renderer.domElement.removeEventListener("pointercancel", onPointerUp);
+      renderer.domElement.removeEventListener("pointerleave", onPointerUp);
+      videoEl.removeEventListener("canplay", onCanPlay);
+      videoEl.removeEventListener("error", onErr);
+      videoEl.pause();
+      videoEl.removeAttribute("src");
+      videoEl.load();
+      videoElRef.current = null;
+      texture.dispose();
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
+      if (renderer.domElement.parentNode === mount) {
+        mount.removeChild(renderer.domElement);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video?.youtubeVideoId, video?.mp4Url]);
+
+  const togglePlay = () => {
+    const v = videoElRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    } else {
+      v.pause();
+      setPlaying(false);
+    }
+  };
+
+  const toggleMute = () => {
+    const v = videoElRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+  };
+
+  if (!video) return null;
 
   const overlay = (
     <div
@@ -108,7 +276,7 @@ export const ImmersiveVR360Viewer = ({
       role="dialog"
       aria-modal="true"
       aria-label={video.title}
-      className="vr360hotels-immersive fixed inset-0 z-[9999] bg-black flex flex-col animate-in fade-in duration-300"
+      className="vr360hotels-immersive fixed inset-0 z-[9999] bg-black flex flex-col"
     >
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-20 p-3 sm:p-5 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
@@ -130,16 +298,30 @@ export const ImmersiveVR360Viewer = ({
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            {video.mp4Url && (
+              <>
+                <button
+                  onClick={togglePlay}
+                  aria-label={playing ? "Pause" : "Play"}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-colors"
+                >
+                  {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                </button>
+                <button
+                  onClick={toggleMute}
+                  aria-label={muted ? "Unmute" : "Mute"}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-colors"
+                >
+                  {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </button>
+              </>
+            )}
             <button
               onClick={toggleFullscreen}
               aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-colors"
             >
-              {isFullscreen ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
             <button
               onClick={onClose}
@@ -152,44 +334,71 @@ export const ImmersiveVR360Viewer = ({
         </div>
       </div>
 
-      {/* Player area */}
+      {/* Three.js canvas mount OR admin notice */}
       <div className="relative flex-1 w-full h-full overflow-hidden">
-        {/* Blurred poster placeholder */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 transition-opacity duration-700"
-          style={{
-            opacity: ready ? 0 : 1,
-            backgroundImage: `url(${video.thumbnail})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "blur(20px) saturate(1.1)",
-            transform: "scale(1.08)",
-          }}
-        />
-        <div
-          className="absolute inset-0 bg-black/50 transition-opacity duration-700 flex flex-col items-center justify-center gap-3"
-          style={{ opacity: ready ? 0 : 1, pointerEvents: ready ? "none" : "auto" }}
-        >
-          <Loader2 className="h-10 w-10 text-white/90 animate-spin" />
-          <p className="text-white/80 text-sm font-medium">
-            {language === "ar"
-              ? "جاري تحميل التجربة الغامرة..."
-              : "Loading immersive experience..."}
-          </p>
-        </div>
+        {video.mp4Url ? (
+          <>
+            <div ref={mountRef} className="absolute inset-0 w-full h-full" />
 
-        {/* The 360° iframe — fills the viewport */}
-        <iframe
-          key={video.youtubeVideoId}
-          title={video.title}
-          src={embedSrc}
-          onLoad={() => setIframeLoaded(true)}
-          className="absolute inset-0 w-full h-full transition-opacity duration-700"
-          style={{ opacity: ready ? 1 : 0, border: 0 }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; xr-spatial-tracking"
-          allowFullScreen
-        />
+            {/* Loading state over the canvas */}
+            {!loaded && !error && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black">
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: `url(${video.thumbnail})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    filter: "blur(20px) saturate(1.1)",
+                    transform: "scale(1.08)",
+                    opacity: 0.6,
+                  }}
+                />
+                <div className="relative z-10 flex flex-col items-center gap-3">
+                  <Loader2 className="h-10 w-10 text-white/90 animate-spin" />
+                  <p className="text-white/85 text-sm font-medium">
+                    {language === "ar"
+                      ? "جاري تحميل التجربة الغامرة 360°..."
+                      : "Loading immersive 360° experience..."}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-black p-6">
+                <div className="max-w-md text-center text-white space-y-3">
+                  <AlertTriangle className="h-10 w-10 mx-auto text-amber-400" />
+                  <p className="text-sm">{error}</p>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          // No mp4 source — show admin notice instead of falling back to YouTube
+          <div className="absolute inset-0 flex items-center justify-center bg-black p-6">
+            <div className="max-w-lg text-center text-white space-y-4">
+              <AlertTriangle className="h-12 w-12 mx-auto text-amber-400" />
+              <h3 className="text-lg font-bold">
+                {language === "ar"
+                  ? "مصدر فيديو 360 غير متوفر"
+                  : "360° video source unavailable"}
+              </h3>
+              <p className="text-sm text-white/80 leading-relaxed">
+                YouTube videos cannot be fully re-rendered without YouTube UI
+                due to platform restrictions. Use direct .mp4 360 video files
+                for full white-label immersive 360 playback. Add a{" "}
+                <code className="px-1 py-0.5 rounded bg-white/10">mp4Url</code>{" "}
+                to this entry in{" "}
+                <code className="px-1 py-0.5 rounded bg-white/10">
+                  sampleVideos.ts
+                </code>
+                .
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom hint bar */}
@@ -197,15 +406,14 @@ export const ImmersiveVR360Viewer = ({
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-white/85 text-xs sm:text-sm font-medium">
             {language === "ar"
-              ? "اسحب داخل الفيديو للنظر حولك في 360°  •  حرّك جهازك على الجوال  •  ESC للخروج"
-              : "Drag inside the video to look around in 360°  •  Move your device on mobile  •  Press ESC to exit"}
+              ? "اسحب يميناً ويساراً وأعلى وأسفل للنظر حولك في 360°  •  ESC للخروج"
+              : "Drag left, right, up, down to look around in 360°  •  Press ESC to exit"}
           </p>
         </div>
       </div>
     </div>
   );
 
-  // Render in a portal so the viewer truly covers the whole viewport
   if (typeof document === "undefined") return null;
   return createPortal(overlay, document.body);
 };
