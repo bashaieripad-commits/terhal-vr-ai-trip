@@ -154,11 +154,19 @@ export const VR360HotelsSection = () => {
                   </div>
 
                   {/* Play affordance */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                     <div className="w-16 h-16 rounded-full bg-primary/95 text-primary-foreground flex items-center justify-center shadow-[var(--shadow-lg)] scale-90 group-hover:scale-100 transition-transform">
                       <Play className="h-7 w-7 ml-0.5 rtl:ml-0 rtl:mr-0.5" fill="currentColor" />
                     </div>
                   </div>
+
+                  {/* Full-thumbnail click target opens the immersive viewer */}
+                  <button
+                    type="button"
+                    onClick={() => openVideo(v)}
+                    aria-label={`${language === "ar" ? "افتح جولة 360 لـ" : "Open 360 tour for"} ${v.title}`}
+                    className="absolute inset-0 z-10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  />
                 </div>
 
                 {/* Card body */}
