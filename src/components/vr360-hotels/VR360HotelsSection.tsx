@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Glasses, Globe2, Play, X, MapPin, Sparkles } from "lucide-react";
+import { Glasses, Globe2, Play, MapPin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { fetchVR360Hotels } from "./youtubeApi";
+import { ImmersiveVR360Viewer } from "./ImmersiveVR360Viewer";
 import {
   SAMPLE_VR360_HOTELS,
   VR360_REGIONS,
@@ -204,84 +204,8 @@ export const VR360HotelsSection = () => {
         )}
       </div>
 
-      {/* Modal Player */}
-      <Dialog open={!!activeVideo} onOpenChange={(open) => !open && closeVideo()}>
-        <DialogContent
-          className="max-w-5xl w-[95vw] p-0 overflow-hidden bg-foreground border-foreground/20 rounded-2xl"
-          onInteractOutside={closeVideo}
-        >
-          {activeVideo && (
-            <div className="relative">
-              {/* Close button */}
-              <button
-                onClick={closeVideo}
-                aria-label="Close"
-                className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-background/15 hover:bg-background/30 backdrop-blur-md text-primary-foreground flex items-center justify-center transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              {/* Title bar */}
-              <div className="absolute top-0 left-0 right-0 z-10 p-4 pr-14 bg-gradient-to-b from-foreground/80 to-transparent">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-primary text-primary-foreground border-0 text-[10px] font-bold tracking-wider px-2 py-0.5">
-                    <Glasses className="h-3 w-3 mr-1" /> 360° / VR
-                  </Badge>
-                  <h3 className="text-sm md:text-base font-semibold text-primary-foreground line-clamp-1">
-                    {activeVideo.title}
-                  </h3>
-                </div>
-              </div>
-
-              {/* Player */}
-              <div className="relative w-full aspect-video bg-foreground">
-                {/* Loading placeholder */}
-                <div
-                  className="absolute inset-0 transition-opacity duration-700"
-                  style={{
-                    opacity: playerReady ? 0 : 1,
-                    backgroundImage: `url(${activeVideo.thumbnail})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    filter: "blur(14px) saturate(1.1)",
-                    transform: "scale(1.08)",
-                  }}
-                  aria-hidden="true"
-                />
-                <div
-                  className="absolute inset-0 bg-foreground/30 transition-opacity duration-700 flex items-center justify-center"
-                  style={{ opacity: playerReady ? 0 : 1 }}
-                >
-                  <div className="w-12 h-12 rounded-full border-[3px] border-primary-foreground/30 border-t-primary-foreground animate-spin" />
-                </div>
-
-                <iframe
-                  key={activeVideo.youtubeVideoId}
-                  onLoad={() => setTimeout(() => setPlayerReady(true), 1000)}
-                  className="absolute inset-0 w-full h-full transition-opacity duration-700"
-                  style={{ opacity: playerReady ? 1 : 0, border: 0 }}
-                  src={`https://www.youtube-nocookie.com/embed/${activeVideo.youtubeVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&cc_load_policy=0&vq=hd1080&hd=1`}
-                  title={activeVideo.title}
-                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-
-              {/* Footer hint */}
-              <div className="px-5 py-3 bg-foreground text-primary-foreground/80 text-xs flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="h-3 w-3" /> {activeVideo.country}
-                </span>
-                <span className="hidden sm:inline">
-                  {language === "ar"
-                    ? "اسحب داخل الفيديو للنظر حولك (إن كان 360° حقيقي)"
-                    : "Drag inside the video to look around (if real 360°)"}
-                </span>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Immersive 360° Viewer (full-screen, drag/swipe to look around) */}
+      <ImmersiveVR360Viewer video={activeVideo} onClose={closeVideo} />
     </section>
   );
 };
