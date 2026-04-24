@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Maximize2, Eye, Bed, Waves, Building2, ChevronLeft, ChevronRight, Play, Volume2, VolumeX } from "lucide-react";
