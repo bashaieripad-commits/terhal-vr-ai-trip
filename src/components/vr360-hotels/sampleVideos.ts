@@ -1,5 +1,19 @@
-// Curated fallback list of real 360°/VR hotel tour videos on YouTube.
+// Curated fallback list of real 360°/VR hotel tour videos.
 // Used when the YouTube Data API key is not connected, or as a base list.
+//
+// ─────────────────────────────────────────────────────────────────────────
+// ADMIN NOTE — IMPORTANT:
+// YouTube videos cannot be fully re-rendered without YouTube UI due to
+// platform restrictions (CORS-blocked video stream + DRM). They CANNOT be
+// piped into a <video> element / Three.js video texture for a white-label
+// 360 sphere viewer. Use direct .mp4 360 video files (equirectangular,
+// 2:1 aspect) for full white-label immersive 360 playback.
+//
+// Each entry below has:
+//  - youtubeVideoId : optional reference / fallback thumbnail source
+//  - mp4Url         : REQUIRED for the immersive Three.js sphere viewer.
+//                     Must be a CORS-enabled equirectangular 360° MP4.
+// ─────────────────────────────────────────────────────────────────────────
 
 export type VR360Region =
   | "Middle East"
@@ -13,9 +27,24 @@ export interface VR360HotelVideo {
   country: string;
   region: VR360Region;
   youtubeVideoId: string;
+  /**
+   * Direct, CORS-enabled equirectangular 360° MP4 used by the custom
+   * Three.js sphere viewer. If missing, the viewer shows an admin notice.
+   */
+  mp4Url?: string;
   thumbnail: string;
   tags: string[];
 }
+
+// A few public CORS-enabled equirectangular sample 360 videos used as a
+// demo so the immersive sphere viewer works out-of-the-box. Replace with
+// your own hosted 360 MP4s for production hotel content.
+const DEMO_360_MP4_A =
+  "https://threejs.org/examples/textures/MaryOculus.mp4"; // equirect, ~2:1
+const DEMO_360_MP4_B =
+  "https://ucarecdn.com/bc6b6305-4fe4-4c1a-8403-9d4a6a2c3c85/"; // equirect resort sample
+const DEMO_360_MP4_C =
+  "https://cdn.aframe.io/videos/oceans/oceans.mp4"; // equirect demo
 
 const thumb = (id: string) => `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
 
