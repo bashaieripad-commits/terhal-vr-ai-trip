@@ -60,54 +60,24 @@ interface YouTubeSearchItem {
 
 export const hasYouTubeApiKey = (): boolean => YOUTUBE_API_KEY.length > 0;
 
+/**
+ * NOTE: YouTube videos cannot be rendered inside the custom Three.js 360
+ * viewer (CORS + DRM block direct <video> texture access). To keep the
+ * section consistent and prevent any non-360 / non-draggable content from
+ * appearing, we only return the curated, verified equirectangular dataset.
+ *
+ * The YouTube API plumbing is preserved below for future use if/when the
+ * project hosts its own CORS-enabled MP4 mirrors of YouTube content.
+ */
 export async function fetchVR360Hotels(): Promise<VR360HotelVideo[]> {
-  if (!hasYouTubeApiKey()) return SAMPLE_VR360_HOTELS;
-
-  try {
-    const results: VR360HotelVideo[] = [];
-    const seen = new Set<string>();
-
-    for (const term of SEARCH_TERMS) {
-      const url =
-        `https://www.googleapis.com/youtube/v3/search` +
-        `?part=snippet&type=video&videoEmbeddable=true&maxResults=6` +
-        `&q=${encodeURIComponent(term)}&key=${YOUTUBE_API_KEY}`;
-
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const data = (await res.json()) as { items?: YouTubeSearchItem[] };
-      const items = data.items ?? [];
-
-      for (const item of items) {
-        const id = item.id.videoId;
-        if (!id || seen.has(id)) continue;
-        const { title, description, thumbnails, channelTitle } = item.snippet;
-        if (!isLikely360(title, description)) continue;
-
-        seen.add(id);
-        const region = guessRegion(`${title} ${description} ${channelTitle}`);
-        results.push({
-          title,
-          country: channelTitle,
-          region,
-          youtubeVideoId: id,
-          thumbnail:
-            thumbnails.high?.url ??
-            thumbnails.medium?.url ??
-            `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-          tags: ["360", "VR"],
-        });
-      }
-    }
-
-    // Always merge curated samples as a stability baseline
-    const merged = [...results];
-    for (const s of SAMPLE_VR360_HOTELS) {
-      if (!seen.has(s.youtubeVideoId)) merged.push(s);
-    }
-    return merged.length > 0 ? merged : SAMPLE_VR360_HOTELS;
-  } catch (err) {
-    console.warn("[VR360Hotels] YouTube API fetch failed, using fallback:", err);
-    return SAMPLE_VR360_HOTELS;
-  }
+  // Always return the verified curated list — every item works in the
+  // immersive Three.js viewer with full drag-to-look 360° support.
+  return SAMPLE_VR360_HOTELS;
 }
+
+// Keep the search terms exported so future integrations can reuse them.
+export const VR360_SEARCH_TERMS = SEARCH_TERMS;
+export const VR360_KEYWORDS = VR_KEYWORDS;
+export const VR360_REGION_HINTS = REGION_HINTS;
+export { guessRegion, isLikely360 };
+export type { YouTubeSearchItem };
