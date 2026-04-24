@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Maximize2, Eye, Bed, Waves, Building2, ChevronLeft, ChevronRight, Play, Volume2, VolumeX } from "lucide-react";
@@ -43,17 +43,36 @@ const scenes = [
 
 export const VRViewer = () => {
   const [activeScene, setActiveScene] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [videoReady, setVideoReady] = useState(false);
   const { language } = useLanguage();
+  const readyTimerRef = useRef<number | null>(null);
 
   const handleSceneChange = (index: number) => {
     if (index === activeScene) return;
+    setVideoReady(false);
     setIsLoading(true);
     setActiveScene(index);
-    setTimeout(() => setIsLoading(false), 600);
   };
 
+  // When iframe reports load, give YouTube a brief moment to upgrade quality
+  // before fading the video in over the poster.
+  const handleIframeLoad = () => {
+    if (readyTimerRef.current) window.clearTimeout(readyTimerRef.current);
+    readyTimerRef.current = window.setTimeout(() => {
+      setVideoReady(true);
+      setIsLoading(false);
+    }, 1200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (readyTimerRef.current) window.clearTimeout(readyTimerRef.current);
+    };
+  }, []);
+
   const currentScene = scenes[activeScene];
+  const posterUrl = `https://i.ytimg.com/vi/${currentScene.videoId}/maxresdefault.jpg`;
 
   return (
     <div className="space-y-6">
@@ -152,15 +171,36 @@ export const VRViewer = () => {
 
           {/* Wrapper hides YouTube branding by scaling the iframe beyond visible area */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* High-quality blurred poster shown until video is ready */}
+            <div
+              className="absolute inset-0 transition-opacity duration-700 ease-out"
+              style={{
+                opacity: videoReady ? 0 : 1,
+                backgroundImage: `url(${posterUrl}), url(${currentScene.image})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                filter: "blur(12px) saturate(1.1)",
+                transform: "scale(1.1)",
+              }}
+              aria-hidden="true"
+            />
+            {/* Subtle dark wash over poster to match video tone */}
+            <div
+              className="absolute inset-0 bg-foreground/20 transition-opacity duration-700"
+              style={{ opacity: videoReady ? 0 : 1 }}
+            />
+
             <iframe
               key={currentScene.videoId + activeScene}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+              onLoad={handleIframeLoad}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-1000 ease-out"
               style={{
                 width: "calc(100% + 200px)",
                 height: "calc(100% + 200px)",
                 border: 0,
+                opacity: videoReady ? 1 : 0,
               }}
-              src={`https://www.youtube-nocookie.com/embed/${currentScene.videoId}?autoplay=1&mute=1&loop=1&playlist=${currentScene.videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3&fs=0&cc_load_policy=0&autohide=1&color=white`}
+              src={`https://www.youtube-nocookie.com/embed/${currentScene.videoId}?autoplay=1&mute=1&loop=1&playlist=${currentScene.videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3&fs=0&cc_load_policy=0&autohide=1&color=white&vq=hd1080&hd=1`}
               title={currentScene.titleEn}
               allow="autoplay; encrypted-media"
               allowFullScreen={false}
