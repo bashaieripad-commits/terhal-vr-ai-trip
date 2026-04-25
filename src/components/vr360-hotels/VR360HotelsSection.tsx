@@ -21,6 +21,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { fetchVR360Hotels } from "./youtubeApi";
 import { ImmersiveVR360Viewer } from "./ImmersiveVR360Viewer";
 import { MultiSceneTourViewer } from "./MultiSceneTourViewer";
+import { YouTube360Viewer, type YouTube360Item } from "./YouTube360Viewer";
 import {
   SAMPLE_VR360_HOTELS,
   type VR360HotelVideo,
@@ -28,6 +29,17 @@ import {
   type VR360Category,
 } from "./sampleVideos";
 import { VIRTUAL_TOURS, type VirtualTour } from "./virtualTours";
+
+// Curated YouTube 360° videos (rendered via YouTube's native 360 player iframe)
+const YOUTUBE_360_ITEMS: YouTube360Item[] = [
+  {
+    id: "yt-ZJWNURJEBrU",
+    title: "Immersive 360° Travel Experience",
+    country: "YouTube 360°",
+    thumbnail: "https://img.youtube.com/vi/ZJWNURJEBrU/maxresdefault.jpg",
+    youtubeId: "ZJWNURJEBrU",
+  },
+];
 
 // ─── Filters: by experience tier OR by content category ──────────────────
 type TierFilter = "All" | "Full Virtual Tour" | "360 Preview";
