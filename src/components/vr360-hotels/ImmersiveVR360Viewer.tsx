@@ -94,9 +94,11 @@ export const ImmersiveVR360Viewer = ({
     }
   };
 
-  // ─── Three.js scene setup (only when an mp4Url is present) ──────────────
+  // ─── Three.js scene setup (mp4Url OR imageUrl) ─────────────────────────
   useEffect(() => {
-    if (!video || !mountRef.current || !video.mp4Url) return;
+    if (!video || !mountRef.current) return;
+    const hasSource = !!(video.mp4Url || video.imageUrl);
+    if (!hasSource) return;
 
     setLoaded(false);
     setError(null);
@@ -120,35 +122,55 @@ export const ImmersiveVR360Viewer = ({
     renderer.domElement.style.touchAction = "none";
     renderer.domElement.style.cursor = "grab";
 
-    // <video> element as texture source
-    const videoEl = document.createElement("video");
-    videoEl.crossOrigin = "anonymous";
-    videoEl.loop = true;
-    videoEl.muted = true; // required for autoplay
-    videoEl.playsInline = true;
-    videoEl.setAttribute("webkit-playsinline", "true");
-    videoEl.preload = "auto";
-    videoEl.src = video.mp4Url;
-    videoElRef.current = videoEl;
+    let texture: THREE.Texture;
+    let videoEl: HTMLVideoElement | null = null;
+    let onCanPlay: (() => void) | null = null;
+    let onErr: (() => void) | null = null;
 
-    const onCanPlay = () => {
-      setLoaded(true);
-      videoEl.play().catch(() => {
-        // Autoplay can fail; user can press the play toggle.
-        setPlaying(false);
-      });
-    };
-    const onErr = () => {
-      setError(
-        language === "ar"
-          ? "تعذّر تحميل فيديو 360. تأكد من رابط MP4 يدعم CORS."
-          : "Failed to load 360 video. Ensure the MP4 URL is CORS-enabled."
+    if (video.mp4Url) {
+      // Animated 360° video texture
+      videoEl = document.createElement("video");
+      videoEl.crossOrigin = "anonymous";
+      videoEl.loop = true;
+      videoEl.muted = true; // required for autoplay
+      videoEl.playsInline = true;
+      videoEl.setAttribute("webkit-playsinline", "true");
+      videoEl.preload = "auto";
+      videoEl.src = video.mp4Url;
+      videoElRef.current = videoEl;
+
+      onCanPlay = () => {
+        setLoaded(true);
+        videoEl?.play().catch(() => setPlaying(false));
+      };
+      onErr = () => {
+        setError(
+          language === "ar"
+            ? "تعذّر تحميل فيديو 360. تأكد من رابط MP4 يدعم CORS."
+            : "Failed to load 360 video. Ensure the MP4 URL is CORS-enabled."
+        );
+      };
+      videoEl.addEventListener("canplay", onCanPlay);
+      videoEl.addEventListener("error", onErr);
+
+      texture = new THREE.VideoTexture(videoEl);
+    } else {
+      // Still 360° equirectangular image — fully draggable, no playback
+      const loader = new THREE.TextureLoader();
+      loader.setCrossOrigin("anonymous");
+      texture = loader.load(
+        video.imageUrl!,
+        () => setLoaded(true),
+        undefined,
+        () => {
+          setError(
+            language === "ar"
+              ? "تعذّر تحميل صورة 360. تأكد من الرابط ودعم CORS."
+              : "Failed to load 360 image. Verify the URL and CORS support."
+          );
+        }
       );
-    };
-    videoEl.addEventListener("canplay", onCanPlay);
-    videoEl.addEventListener("error", onErr);
-
-    const texture = new THREE.VideoTexture(videoEl);
+    }
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
