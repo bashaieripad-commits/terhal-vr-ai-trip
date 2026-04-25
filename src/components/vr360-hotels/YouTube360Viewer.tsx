@@ -41,64 +41,57 @@ export const YouTube360Viewer = ({ item, onClose }: Props) => {
 
   if (!item) return null;
 
-  const src = `https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+  // Params:
+  //   playsinline=1 → required for iOS to render 360 controls inline
+  //   fs=1          → allow YouTube's fullscreen (enables VR/cardboard button)
+  //   modestbranding/rel → minimize unrelated UI
+  //   enablejsapi=1 → some 360 features check for it
+  const src = `https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&playsinline=1&fs=1&rel=0&modestbranding=1&enablejsapi=1`;
 
   const overlay = (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={item.title}
-      className="fixed inset-0 z-[9999] bg-black flex flex-col"
+      className="fixed inset-0 z-[9999] bg-black"
     >
-      {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 p-3 sm:p-5 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
-        <div className="flex items-start justify-between gap-3 pointer-events-auto">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Badge className="bg-primary text-primary-foreground border-0 text-[10px] font-bold tracking-wider px-2 py-1 flex-shrink-0">
-              <Glasses className="h-3 w-3 mr-1" />
-              360° / VR
-            </Badge>
-            <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-semibold text-white line-clamp-1">
-                {item.title}
-              </h2>
-              <p className="text-[11px] sm:text-xs text-white/70 flex items-center gap-1 mt-0.5">
-                <MapPin className="h-3 w-3" />
-                {item.country}
-              </p>
-            </div>
+      {/* Iframe — full screen so YouTube's native 360° pan compass (top-left)
+          and VR/cardboard button (bottom-right) stay reachable */}
+      <iframe
+        src={src}
+        title={item.title}
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen; xr-spatial-tracking"
+        allowFullScreen
+        className="absolute inset-0 w-full h-full border-0"
+      />
+
+      {/* Floating title pill — top-center so it doesn't cover YouTube's 360 compass */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10 pointer-events-auto max-w-[80vw]">
+          <Badge className="bg-primary text-primary-foreground border-0 text-[9px] font-bold tracking-wider px-1.5 py-0.5 flex-shrink-0">
+            <Glasses className="h-2.5 w-2.5 mr-0.5" />
+            360°
+          </Badge>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-white line-clamp-1 leading-tight">
+              {item.title}
+            </p>
+            <p className="text-[10px] text-white/60 flex items-center gap-1 leading-tight">
+              <MapPin className="h-2.5 w-2.5" />
+              {item.country}
+            </p>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-colors flex-shrink-0"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       </div>
 
-      {/* Iframe */}
-      <div className="relative flex-1 w-full h-full overflow-hidden">
-        <iframe
-          src={src}
-          title={item.title}
-          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="absolute inset-0 w-full h-full border-0"
-        />
-      </div>
-
-      {/* Bottom hint */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 p-3 sm:p-4 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-white/85 text-xs sm:text-sm font-medium">
-            {language === "ar"
-              ? "اسحب للنظر حولك في 360°  •  ESC للخروج"
-              : "Drag to look around in 360°  •  Press ESC to exit"}
-          </p>
-        </div>
-      </div>
+      {/* Close button — top-right (YouTube has nothing there) */}
+      <button
+        onClick={onClose}
+        aria-label={language === "ar" ? "إغلاق" : "Close"}
+        className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/10 text-white flex items-center justify-center transition-colors"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 
