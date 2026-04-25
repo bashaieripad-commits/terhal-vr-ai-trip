@@ -493,6 +493,12 @@ export const VR360HotelsSection = () => {
         video={activePreview}
         onClose={() => setActivePreview(null)}
       />
+
+      {/* YouTube 360 viewer (native YouTube iframe player) */}
+      <YouTube360Viewer
+        item={activeYouTube}
+        onClose={() => setActiveYouTube(null)}
+      />
     </section>
   );
 };
