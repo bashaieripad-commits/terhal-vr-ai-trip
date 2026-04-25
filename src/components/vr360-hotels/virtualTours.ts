@@ -275,31 +275,10 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
     ],
   },
 
-  // ═══════════════ ASIA ═══════════════
-  {
-    id: "tour-bali-retreat",
-    hotelName: "Bali Forest Retreat",
-    hotelNameAr: "منتجع غابة بالي",
-    country: "Indonesia",
-    region: "Asia",
-    thumbnail: PANORAMA_POOL_TOURS.kartClub,
-    startSceneId: "exterior",
-    tags: ["nature", "retreat", "tropical"],
-    scenes: [
-      // Each scene below uses a unique slug already reserved above OR a fresh
-      // never-used slug. We allow tours to use scenery similar to its country
-      // but every URL must be globally unique across the section.
-      {
-        id: "exterior",
-        name: "Forest Entrance",
-        nameAr: "مدخل الغابة",
-        image: PANORAMA_POOL_TOURS.kartClub,
-        hotspots: [
-          { target: "lobby", yaw: 10, pitch: -5, label: "Enter Lodge", type: "door" },
-        ],
-      },
-    ],
-  },
+  // NOTE: Bali / Marrakech / Rio multi-scene tours were removed because we
+  // could not source enough UNIQUE, verified, CORS-enabled equirectangular
+  // panoramas to honor the "no repeated scenes" rule for those properties.
+  // They will be re-introduced once the actual hotel panoramas are provided.
 ];
 
 export const TOUR_SCENE_LABELS_AR: Record<string, string> = {
