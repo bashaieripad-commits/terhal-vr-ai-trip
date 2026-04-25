@@ -2,7 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { useNavigate } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { FeaturedSection } from "@/components/FeaturedSection";
-import { VRViewer } from "@/components/VRViewer";
+
 import { VR360HotelsSection } from "@/components/vr360-hotels/VR360HotelsSection";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Eye, Shield, Bell, ArrowDown, Star, MapPin, Plane } from "lucide-react";
@@ -257,34 +257,6 @@ const Index = () => {
       {/* Main Content */}
       <main id="main-content" role="main">
         <FeaturedSection />
-
-        {/* VR Experience Section */}
-        <section className="py-20 px-4 bg-gradient-to-b from-secondary/30 to-background" aria-labelledby="vr-section-title">
-          <div className="container">
-            <motion.div
-              className="text-center mb-12"
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}>
-              
-              <motion.h2 variants={fadeUp} custom={0} id="vr-section-title" className="text-4xl md:text-5xl font-bold mb-4">
-                {language === "ar" ? "استكشف بتقنية VR" : "Explore with VR"}
-              </motion.h2>
-              <motion.p variants={fadeUp} custom={1} className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                {language === "ar" ? "جرّب الغرف والفنادق قبل الحجز" : "Experience rooms and hotels before booking"}
-              </motion.p>
-            </motion.div>
-            <motion.div
-              className="max-w-6xl mx-auto"
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}>
-              
-              <VRViewer />
-            </motion.div>
-          </div>
-        </section>
 
         {/* VR 360 Hotel Experiences (isolated component) */}
         <VR360HotelsSection />
