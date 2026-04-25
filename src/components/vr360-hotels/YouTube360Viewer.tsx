@@ -41,7 +41,12 @@ export const YouTube360Viewer = ({ item, onClose }: Props) => {
 
   if (!item) return null;
 
-  const src = `https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+  // Params:
+  //   playsinline=1 → required for iOS to render 360 controls inline
+  //   fs=1          → allow YouTube's fullscreen (enables VR/cardboard button)
+  //   modestbranding/rel → minimize unrelated UI
+  //   enablejsapi=1 → some 360 features check for it
+  const src = `https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&playsinline=1&fs=1&rel=0&modestbranding=1&enablejsapi=1`;
 
   const overlay = (
     <div
