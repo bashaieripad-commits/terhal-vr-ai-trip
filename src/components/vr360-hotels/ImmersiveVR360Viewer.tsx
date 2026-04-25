@@ -255,12 +255,14 @@ export const ImmersiveVR360Viewer = ({
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
       renderer.domElement.removeEventListener("pointercancel", onPointerUp);
       renderer.domElement.removeEventListener("pointerleave", onPointerUp);
-      videoEl.removeEventListener("canplay", onCanPlay);
-      videoEl.removeEventListener("error", onErr);
-      videoEl.pause();
-      videoEl.removeAttribute("src");
-      videoEl.load();
-      videoElRef.current = null;
+      if (videoEl) {
+        if (onCanPlay) videoEl.removeEventListener("canplay", onCanPlay);
+        if (onErr) videoEl.removeEventListener("error", onErr);
+        videoEl.pause();
+        videoEl.removeAttribute("src");
+        videoEl.load();
+        videoElRef.current = null;
+      }
       texture.dispose();
       geometry.dispose();
       material.dispose();
@@ -270,7 +272,7 @@ export const ImmersiveVR360Viewer = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [video?.youtubeVideoId, video?.mp4Url]);
+  }, [video?.title, video?.mp4Url, video?.imageUrl]);
 
   const togglePlay = () => {
     const v = videoElRef.current;
