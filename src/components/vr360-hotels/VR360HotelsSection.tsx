@@ -312,17 +312,29 @@ export const VR360HotelsSection = () => {
           <AnimatePresence mode="popLayout">
             {filteredItems.map((item, i) => {
               const isTour = item.kind === "tour";
+              const isYouTube = item.kind === "youtube";
               const title = isTour
                 ? language === "ar"
                   ? item.tour.hotelNameAr
                   : item.tour.hotelName
+                : isYouTube
+                ? item.yt.title
                 : item.video.title;
-              const country = isTour ? item.tour.country : item.video.country;
-              const thumbnail = isTour ? item.tour.thumbnail : item.video.thumbnail;
+              const country = isTour
+                ? item.tour.country
+                : isYouTube
+                ? item.yt.country
+                : item.video.country;
+              const thumbnail = isTour
+                ? item.tour.thumbnail
+                : isYouTube
+                ? item.yt.thumbnail
+                : item.video.thumbnail;
               const sceneCount = isTour ? item.tour.scenes.length : 0;
 
               const onOpen = () => {
                 if (isTour) setActiveTour(item.tour);
+                else if (isYouTube) setActiveYouTube(item.yt);
                 else setActivePreview(item.video);
               };
 
