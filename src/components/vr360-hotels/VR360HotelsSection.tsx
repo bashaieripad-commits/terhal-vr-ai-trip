@@ -21,6 +21,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { fetchVR360Hotels } from "./youtubeApi";
 import { ImmersiveVR360Viewer } from "./ImmersiveVR360Viewer";
 import { MultiSceneTourViewer } from "./MultiSceneTourViewer";
+import { YouTube360Viewer, type YouTube360Item } from "./YouTube360Viewer";
 import {
   SAMPLE_VR360_HOTELS,
   type VR360HotelVideo,
@@ -28,6 +29,17 @@ import {
   type VR360Category,
 } from "./sampleVideos";
 import { VIRTUAL_TOURS, type VirtualTour } from "./virtualTours";
+
+// Curated YouTube 360° videos (rendered via YouTube's native 360 player iframe)
+const YOUTUBE_360_ITEMS: YouTube360Item[] = [
+  {
+    id: "yt-ZJWNURJEBrU",
+    title: "Immersive 360° Travel Experience",
+    country: "YouTube 360°",
+    thumbnail: "https://img.youtube.com/vi/ZJWNURJEBrU/maxresdefault.jpg",
+    youtubeId: "ZJWNURJEBrU",
+  },
+];
 
 // ─── Filters: by experience tier OR by content category ──────────────────
 type TierFilter = "All" | "Full Virtual Tour" | "360 Preview";
@@ -62,11 +74,14 @@ const CATEGORY_ICONS: Record<CategoryFilter, typeof Building2> = {
 // Discriminated union — every card is either a Full Virtual Tour or a 360 Preview.
 type GridItem =
   | { kind: "tour"; tour: VirtualTour }
-  | { kind: "preview"; video: VR360HotelVideo };
+  | { kind: "preview"; video: VR360HotelVideo }
+  | { kind: "youtube"; yt: YouTube360Item };
 
 const itemKey = (item: GridItem): string =>
   item.kind === "tour"
     ? `tour-${item.tour.id}`
+    : item.kind === "youtube"
+    ? `yt-${item.yt.id}`
     : `preview-${item.video.title}`;
 
 const CATEGORY_FILTERS: CategoryFilter[] = [
@@ -90,6 +105,9 @@ export const VR360HotelsSection = () => {
   const [activePreview, setActivePreview] = useState<VR360HotelVideo | null>(
     null
   );
+  const [activeYouTube, setActiveYouTube] = useState<YouTube360Item | null>(
+    null
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -101,10 +119,11 @@ export const VR360HotelsSection = () => {
     };
   }, []);
 
-  // Tours first — they're the headline experience.
+  // Tours first — they're the headline experience. YouTube 360s sit alongside previews.
   const allItems: GridItem[] = useMemo(
     () => [
       ...VIRTUAL_TOURS.map((t) => ({ kind: "tour" as const, tour: t })),
+      ...YOUTUBE_360_ITEMS.map((y) => ({ kind: "youtube" as const, yt: y })),
       ...previews.map((v) => ({ kind: "preview" as const, video: v })),
     ],
     [previews]
@@ -112,13 +131,17 @@ export const VR360HotelsSection = () => {
 
   const filteredItems = useMemo(() => {
     return allItems.filter((i) => {
-      // Tier filter
+      // Tier filter — YouTube 360s count as "360 Preview"
       if (tier === "Full Virtual Tour" && i.kind !== "tour") return false;
-      if (tier === "360 Preview" && i.kind !== "preview") return false;
-      // Category filter (tours don't carry a category, treat as "Resort")
+      if (tier === "360 Preview" && i.kind === "tour") return false;
+      // Category filter (tours -> "Resort", YouTube -> "Landmark")
       if (category !== "All") {
         const cat: VR360Category =
-          i.kind === "tour" ? "Resort" : i.video.category;
+          i.kind === "tour"
+            ? "Resort"
+            : i.kind === "youtube"
+            ? "Landmark"
+            : i.video.category;
         if (cat !== category) return false;
       }
       return true;
@@ -126,7 +149,7 @@ export const VR360HotelsSection = () => {
   }, [allItems, tier, category]);
 
   const tourCount = allItems.filter((i) => i.kind === "tour").length;
-  const previewCount = allItems.filter((i) => i.kind === "preview").length;
+  const previewCount = allItems.filter((i) => i.kind !== "tour").length;
 
   return (
     <section
@@ -289,17 +312,29 @@ export const VR360HotelsSection = () => {
           <AnimatePresence mode="popLayout">
             {filteredItems.map((item, i) => {
               const isTour = item.kind === "tour";
+              const isYouTube = item.kind === "youtube";
               const title = isTour
                 ? language === "ar"
                   ? item.tour.hotelNameAr
                   : item.tour.hotelName
+                : isYouTube
+                ? item.yt.title
                 : item.video.title;
-              const country = isTour ? item.tour.country : item.video.country;
-              const thumbnail = isTour ? item.tour.thumbnail : item.video.thumbnail;
+              const country = isTour
+                ? item.tour.country
+                : isYouTube
+                ? item.yt.country
+                : item.video.country;
+              const thumbnail = isTour
+                ? item.tour.thumbnail
+                : isYouTube
+                ? item.yt.thumbnail
+                : item.video.thumbnail;
               const sceneCount = isTour ? item.tour.scenes.length : 0;
 
               const onOpen = () => {
                 if (isTour) setActiveTour(item.tour);
+                else if (isYouTube) setActiveYouTube(item.yt);
                 else setActivePreview(item.video);
               };
 
@@ -457,6 +492,12 @@ export const VR360HotelsSection = () => {
       <ImmersiveVR360Viewer
         video={activePreview}
         onClose={() => setActivePreview(null)}
+      />
+
+      {/* YouTube 360 viewer (native YouTube iframe player) */}
+      <YouTube360Viewer
+        item={activeYouTube}
+        onClose={() => setActiveYouTube(null)}
       />
     </section>
   );
