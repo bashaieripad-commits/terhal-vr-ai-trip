@@ -53,6 +53,12 @@ export interface VR360HotelVideo {
   /** Card thumbnail (uses the same panorama by default). */
   thumbnail: string;
   tags: string[];
+  /**
+   * Optional equirectangular 360° MP4 (CORS-enabled). Present only when an
+   * animated video panorama is available; the still `imageUrl` is preferred
+   * because it guarantees a unique, high-quality scene per card.
+   */
+  mp4Url?: string;
 }
 
 // ─── Verified CORS-enabled equirectangular JPG sources ────────────────────
