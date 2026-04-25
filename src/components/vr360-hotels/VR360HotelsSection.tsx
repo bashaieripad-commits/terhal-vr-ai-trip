@@ -1,17 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Glasses, Globe2, Play, MapPin, Sparkles } from "lucide-react";
+import {
+  Glasses,
+  Globe2,
+  Play,
+  MapPin,
+  Sparkles,
+  Footprints,
+  Eye,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { fetchVR360Hotels } from "./youtubeApi";
 import { ImmersiveVR360Viewer } from "./ImmersiveVR360Viewer";
+import { MultiSceneTourViewer } from "./MultiSceneTourViewer";
 import {
   SAMPLE_VR360_HOTELS,
   VR360_REGIONS,
   type VR360HotelVideo,
   type VR360Region,
 } from "./sampleVideos";
+import { VIRTUAL_TOURS, type VirtualTour } from "./virtualTours";
 
 type FilterValue = "All" | VR360Region;
 
@@ -24,29 +34,53 @@ const REGION_LABELS_AR: Record<FilterValue, string> = {
   Americas: "الأمريكتين",
 };
 
+// Discriminated union — every card is either a Full Virtual Tour or a 360 Preview.
+type GridItem =
+  | { kind: "tour"; tour: VirtualTour }
+  | { kind: "preview"; video: VR360HotelVideo };
+
+const itemRegion = (item: GridItem): VR360Region =>
+  item.kind === "tour" ? item.tour.region : item.video.region;
+
+const itemKey = (item: GridItem): string =>
+  item.kind === "tour"
+    ? `tour-${item.tour.id}`
+    : `preview-${item.video.title}`;
+
 export const VR360HotelsSection = () => {
   const { language } = useLanguage();
-  const [videos, setVideos] = useState<VR360HotelVideo[]>(SAMPLE_VR360_HOTELS);
+  const [previews, setPreviews] = useState<VR360HotelVideo[]>(
+    SAMPLE_VR360_HOTELS
+  );
   const [filter, setFilter] = useState<FilterValue>("All");
-  const [activeVideo, setActiveVideo] = useState<VR360HotelVideo | null>(null);
+  const [activeTour, setActiveTour] = useState<VirtualTour | null>(null);
+  const [activePreview, setActivePreview] = useState<VR360HotelVideo | null>(
+    null
+  );
 
   useEffect(() => {
     let cancelled = false;
     fetchVR360Hotels().then((list) => {
-      if (!cancelled && list.length) setVideos(list);
+      if (!cancelled && list.length) setPreviews(list);
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const filteredVideos = useMemo(() => {
-    if (filter === "All") return videos;
-    return videos.filter((v) => v.region === filter);
-  }, [videos, filter]);
+  // Tours first, then previews — multi-scene experiences are the headline.
+  const allItems: GridItem[] = useMemo(
+    () => [
+      ...VIRTUAL_TOURS.map((t) => ({ kind: "tour" as const, tour: t })),
+      ...previews.map((v) => ({ kind: "preview" as const, video: v })),
+    ],
+    [previews]
+  );
 
-  const openVideo = (v: VR360HotelVideo) => setActiveVideo(v);
-  const closeVideo = () => setActiveVideo(null);
+  const filteredItems = useMemo(() => {
+    if (filter === "All") return allItems;
+    return allItems.filter((i) => itemRegion(i) === filter);
+  }, [allItems, filter]);
 
   const filters: FilterValue[] = ["All", ...VR360_REGIONS];
 
@@ -80,8 +114,8 @@ export const VR360HotelsSection = () => {
           </h2>
           <p className="text-muted-foreground text-lg leading-relaxed">
             {language === "ar"
-              ? "جولات افتراضية غامرة لغرف وفنادق ومنتجعات حول العالم."
-              : "Take immersive virtual tours of hotel rooms, resorts, and suites around the world."}
+              ? "جولات افتراضية غامرة متعددة الغرف — تنقل بين البهو والغرف والمسبح بنقرة واحدة."
+              : "Interactive multi-room virtual tours — walk between the lobby, suites, pool and more with a single click."}
           </p>
         </motion.div>
 
@@ -117,85 +151,146 @@ export const VR360HotelsSection = () => {
         {/* Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <AnimatePresence mode="popLayout">
-            {filteredVideos.map((v, i) => (
-              <motion.article
-                key={v.youtubeVideoId}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.3) }}
-                className="vr360hotels-card group relative rounded-3xl overflow-hidden border border-border/60 bg-card shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] hover:-translate-y-1 transition-all duration-500"
-              >
-                {/* Thumbnail */}
-                <div className="relative aspect-video overflow-hidden bg-muted">
-                  <img
-                    src={v.thumbnail}
-                    alt={v.title}
-                    loading="lazy"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = `https://i.ytimg.com/vi/${v.youtubeVideoId}/hqdefault.jpg`;
-                    }}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  {/* Dark overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent" />
+            {filteredItems.map((item, i) => {
+              const isTour = item.kind === "tour";
+              const title = isTour
+                ? language === "ar"
+                  ? item.tour.hotelNameAr
+                  : item.tour.hotelName
+                : item.video.title;
+              const country = isTour ? item.tour.country : item.video.country;
+              const region = isTour ? item.tour.region : item.video.region;
+              const thumbnail = isTour ? item.tour.thumbnail : item.video.thumbnail;
+              const sceneCount = isTour ? item.tour.scenes.length : 0;
 
-                  {/* 360 / VR badge */}
-                  <Badge className="absolute top-3 left-3 rtl:left-auto rtl:right-3 bg-background/90 text-foreground border-0 backdrop-blur-md shadow-sm flex items-center gap-1 px-2.5 py-1">
-                    <Glasses className="h-3 w-3 text-primary" />
-                    <span className="text-[10px] font-bold tracking-wider">360° / VR</span>
-                  </Badge>
+              const onOpen = () => {
+                if (isTour) setActiveTour(item.tour);
+                else setActivePreview(item.video);
+              };
 
-                  {/* Region label */}
-                  <div className="absolute top-3 right-3 rtl:right-auto rtl:left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-foreground/40 backdrop-blur-md text-[11px] font-medium text-primary-foreground">
-                    <MapPin className="h-3 w-3" />
-                    {v.country}
+              return (
+                <motion.article
+                  key={itemKey(item)}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.3) }}
+                  className="vr360hotels-card group relative rounded-3xl overflow-hidden border border-border/60 bg-card shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] hover:-translate-y-1 transition-all duration-500"
+                >
+                  {/* Thumbnail */}
+                  <div className="relative aspect-video overflow-hidden bg-muted">
+                    <img
+                      src={thumbnail}
+                      alt={title}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent" />
+
+                    {/* Tour vs Preview badge */}
+                    {isTour ? (
+                      <Badge className="absolute top-3 left-3 rtl:left-auto rtl:right-3 bg-primary text-primary-foreground border-0 backdrop-blur-md shadow-md flex items-center gap-1 px-2.5 py-1">
+                        <Footprints className="h-3 w-3" />
+                        <span className="text-[10px] font-bold tracking-wider">
+                          {language === "ar" ? "جولة افتراضية كاملة" : "Full Virtual Tour"}
+                        </span>
+                      </Badge>
+                    ) : (
+                      <Badge className="absolute top-3 left-3 rtl:left-auto rtl:right-3 bg-background/90 text-foreground border-0 backdrop-blur-md shadow-sm flex items-center gap-1 px-2.5 py-1">
+                        <Eye className="h-3 w-3 text-primary" />
+                        <span className="text-[10px] font-bold tracking-wider">
+                          {language === "ar" ? "معاينة 360" : "360 Preview"}
+                        </span>
+                      </Badge>
+                    )}
+
+                    {/* Region/country label */}
+                    <div className="absolute top-3 right-3 rtl:right-auto rtl:left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-foreground/40 backdrop-blur-md text-[11px] font-medium text-primary-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {country}
+                    </div>
+
+                    {/* Scene count chip (tours only) */}
+                    {isTour && (
+                      <div className="absolute bottom-3 left-3 rtl:left-auto rtl:right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[10px] font-semibold text-white">
+                        <Glasses className="h-3 w-3" />
+                        {language === "ar"
+                          ? `${sceneCount} مشاهد قابلة للتنقل`
+                          : `${sceneCount} navigable scenes`}
+                      </div>
+                    )}
+
+                    {/* Play affordance */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                      <div className="w-16 h-16 rounded-full bg-primary/95 text-primary-foreground flex items-center justify-center shadow-[var(--shadow-lg)] scale-90 group-hover:scale-100 transition-transform">
+                        {isTour ? (
+                          <Footprints className="h-7 w-7" />
+                        ) : (
+                          <Play className="h-7 w-7 ml-0.5 rtl:ml-0 rtl:mr-0.5" fill="currentColor" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Full-thumbnail click target */}
+                    <button
+                      type="button"
+                      onClick={onOpen}
+                      aria-label={`${
+                        isTour
+                          ? language === "ar"
+                            ? "ابدأ الجولة الافتراضية لـ"
+                            : "Start virtual tour for"
+                          : language === "ar"
+                          ? "افتح معاينة 360 لـ"
+                          : "Open 360 preview for"
+                      } ${title}`}
+                      className="absolute inset-0 z-10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    />
                   </div>
 
-                  {/* Play affordance */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                    <div className="w-16 h-16 rounded-full bg-primary/95 text-primary-foreground flex items-center justify-center shadow-[var(--shadow-lg)] scale-90 group-hover:scale-100 transition-transform">
-                      <Play className="h-7 w-7 ml-0.5 rtl:ml-0 rtl:mr-0.5" fill="currentColor" />
+                  {/* Card body */}
+                  <div className="p-5 space-y-3">
+                    <h3 className="text-base font-bold leading-snug line-clamp-2 min-h-[2.75rem]">
+                      {title}
+                    </h3>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {language === "ar"
+                          ? REGION_LABELS_AR[region]
+                          : region}
+                      </span>
+                      <Button
+                        size="sm"
+                        onClick={onOpen}
+                        className={`rounded-full text-xs font-semibold px-4 h-8 ${
+                          isTour
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "bg-foreground text-background hover:bg-foreground/90"
+                        }`}
+                      >
+                        {isTour ? (
+                          <Footprints className="h-3.5 w-3.5 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
+                        ) : (
+                          <Glasses className="h-3.5 w-3.5 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
+                        )}
+                        {isTour
+                          ? language === "ar"
+                            ? "ابدأ الجولة"
+                            : "Start Tour"
+                          : language === "ar"
+                          ? "معاينة 360"
+                          : "360 Preview"}
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Full-thumbnail click target opens the immersive viewer */}
-                  <button
-                    type="button"
-                    onClick={() => openVideo(v)}
-                    aria-label={`${language === "ar" ? "افتح جولة 360 لـ" : "Open 360 tour for"} ${v.title}`}
-                    className="absolute inset-0 z-10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  />
-                </div>
-
-                {/* Card body */}
-                <div className="p-5 space-y-3">
-                  <h3 className="text-base font-bold leading-snug line-clamp-2 min-h-[2.75rem]">
-                    {v.title}
-                  </h3>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-muted-foreground font-medium">
-                      {language === "ar"
-                        ? REGION_LABELS_AR[v.region]
-                        : v.region}
-                    </span>
-                    <Button
-                      size="sm"
-                      onClick={() => openVideo(v)}
-                      className="rounded-full text-xs font-semibold px-4 h-8 bg-foreground text-background hover:bg-foreground/90"
-                    >
-                      <Glasses className="h-3.5 w-3.5 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
-                      {language === "ar" ? "شاهد جولة 360" : "Watch 360 Tour"}
-                    </Button>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
+                </motion.article>
+              );
+            })}
           </AnimatePresence>
         </div>
 
-        {filteredVideos.length === 0 && (
+        {filteredItems.length === 0 && (
           <p className="text-center text-muted-foreground mt-12">
             {language === "ar"
               ? "لا توجد جولات في هذه المنطقة حالياً."
@@ -204,8 +299,17 @@ export const VR360HotelsSection = () => {
         )}
       </div>
 
-      {/* Immersive 360° Viewer (full-screen, drag/swipe to look around) */}
-      <ImmersiveVR360Viewer video={activeVideo} onClose={closeVideo} />
+      {/* Multi-scene virtual tour viewer (with hotspot navigation) */}
+      <MultiSceneTourViewer
+        tour={activeTour}
+        onClose={() => setActiveTour(null)}
+      />
+
+      {/* Single-scene 360° preview viewer (legacy/preview-only mode) */}
+      <ImmersiveVR360Viewer
+        video={activePreview}
+        onClose={() => setActivePreview(null)}
+      />
     </section>
   );
 };
