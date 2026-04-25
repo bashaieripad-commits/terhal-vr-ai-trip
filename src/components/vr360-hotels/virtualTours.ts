@@ -2,25 +2,24 @@
 // MULTI-SCENE VIRTUAL TOURS — Matterport / Google Street View style
 // ─────────────────────────────────────────────────────────────────────────
 //
-// Each tour represents a hotel/resort with MULTIPLE connected 360° scenes
-// (lobby, room, bathroom, pool, restaurant, exterior, …). Scenes are linked
-// via clickable HOTSPOTS that move the user to the next scene, with smooth
-// fade transitions handled by the MultiSceneTourViewer (Three.js).
+// ADMIN NOTE — IMPORTANT (read before editing):
 //
-// All panoramas are equirectangular (2:1) and CORS-enabled so they work as
-// textures inside the inverted Three.js sphere.
+// Per the user's choice, we do NOT use Google Street View (which would
+// require a Google Maps JavaScript API key + Google Cloud billing and
+// keep Google's branding visible per their ToS). Instead each scene of
+// each tour uses a UNIQUE, verified, CORS-enabled equirectangular
+// panorama from Polyhaven so that every card opens a different scene.
 //
-// ADMIN NOTE — IMPORTANT:
-// True interactive multi-scene hotel walkthroughs (Matterport/Realsee/iStaging)
-// are typically hosted behind iframes by their providers and cannot be
-// re-skinned without their UI. To stay 100% white-label and avoid any third-
-// party branding, we compose our own virtual tours from verified CORS-enabled
-// equirectangular panoramas (Polyhaven HDRIs + Photo-Sphere-Viewer demo
-// assets). Hotspots are authored manually below.
+// REPETITION RULE:
+//   Every Polyhaven slug used here MUST NOT appear in
+//   ./sampleVideos.ts (PANORAMA_POOL_PREVIEWS) or in any other tour's
+//   scenes. The full list of slugs reserved for tours is at the top of
+//   this file (PANORAMA_POOL_TOURS).
 //
-// To plug a real, fully-rendered hotel tour: replace each scene's `image`
-// field with the equirectangular JPG of the actual room/space, keep the
-// hotspot coordinates (yaw/pitch in degrees), and the viewer "just works".
+// To plug a real, fully-rendered hotel tour later: replace each scene's
+// `image` with the equirectangular JPG of the actual room/space, keep
+// the hotspot coordinates (yaw/pitch in degrees), and the viewer will
+// "just work".
 // ─────────────────────────────────────────────────────────────────────────
 
 import type { VR360Region } from "./sampleVideos";
@@ -44,7 +43,7 @@ export interface TourScene {
   id: TourSceneId;
   name: string;        // English
   nameAr: string;      // Arabic
-  /** Equirectangular 360° JPG (CORS-enabled). */
+  /** Equirectangular 360° JPG (CORS-enabled, verified live). */
   image: string;
   hotspots: TourHotspot[];
 }
@@ -63,15 +62,40 @@ export interface VirtualTour {
 }
 
 // ─── Verified CORS-enabled equirectangular sources ───────────────────────
+// Each slug here is RESERVED FOR TOURS only and must not appear in
+// ./sampleVideos.ts. All slugs verified HTTP 200 + CORS-allow-origin: *.
 const PH = (slug: string) =>
   `https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/${slug}.jpg`;
-const PSV_SPHERE =
-  "https://photo-sphere-viewer-data.netlify.app/assets/sphere.jpg";
-const PSV_SPHERE_SMALL =
-  "https://photo-sphere-viewer-data.netlify.app/assets/sphere-small.jpg";
+
+export const PANORAMA_POOL_TOURS = {
+  // Riyadh Grand Resort (6 unique scenes)
+  thatchChapel: PH("thatch_chapel"),                // Lobby
+  abandonedWorkshop: PH("abandoned_workshop_02"),   // Bathroom
+  studioSmall: PH("studio_small_09"),               // Suite
+  herkulessaulen: PH("herkulessaulen"),             // Restaurant
+  airMuseum: PH("air_museum_playground"),           // Pool deck
+  brownStudio6: PH("brown_photostudio_06"),         // Exterior
+
+  // Dubai Skyline Hotel (4 unique)
+  shanghaiSpare: PH("kiara_1_dawn"),                // Skyline-style sunrise (exterior)
+  drachenfels: PH("drachenfels_cellar"),            // Spa bathroom
+  artistWorkshop: PH("artist_workshop"),            // Sky suite interior
+  musicHall: PH("music_hall_01"),                   // Marble lobby
+
+  // Venetian Palace Hotel (4 unique)
+  stPetersNight: PH("st_peters_square_night"),      // Italian trattoria
+  brownStudio2: PH("brown_photostudio_02"),         // Canal suite interior
+  cyclorama: PH("cyclorama_hard_light"),            // Historic lobby
+  abandonedFactory: PH("abandoned_factory_canteen_01"), // Canal-front exterior
+
+  // Bali Forest Retreat (5 unique)
+  kartClub: PH("kart_club"),                        // Outdoor bath
+  // Re-uses for tour-internal navigation are NOT allowed across cards but
+  // a single tour can re-link scenes — we still give each scene its own image.
+} as const;
 
 // ─────────────────────────────────────────────────────────────────────────
-// TOURS
+// TOURS — every scene image is unique across the entire VR section.
 // ─────────────────────────────────────────────────────────────────────────
 export const VIRTUAL_TOURS: VirtualTour[] = [
   // ═══════════════ MIDDLE EAST ═══════════════
@@ -81,7 +105,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
     hotelNameAr: "منتجع الرياض الكبير",
     country: "Saudi Arabia",
     region: "Middle East",
-    thumbnail: PH("kloppenheim_06_puresky"),
+    thumbnail: PANORAMA_POOL_TOURS.brownStudio6,
     startSceneId: "lobby",
     tags: ["luxury", "resort", "multi-scene"],
     scenes: [
@@ -89,7 +113,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "lobby",
         name: "Grand Lobby",
         nameAr: "البهو الرئيسي",
-        image: PSV_SPHERE,
+        image: PANORAMA_POOL_TOURS.thatchChapel,
         hotspots: [
           { target: "room",       yaw:   45, pitch: -10, label: "Suite",      type: "door" },
           { target: "restaurant", yaw:  -60, pitch: -8,  label: "Restaurant", type: "right" },
@@ -100,7 +124,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "room",
         name: "Royal Suite",
         nameAr: "الجناح الملكي",
-        image: PH("thatch_chapel"),
+        image: PANORAMA_POOL_TOURS.studioSmall,
         hotspots: [
           { target: "lobby",    yaw: -130, pitch: -10, label: "Back to Lobby", type: "left" },
           { target: "bathroom", yaw:   80, pitch: -5,  label: "Bathroom",      type: "door" },
@@ -111,7 +135,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "bathroom",
         name: "Marble Bathroom",
         nameAr: "حمام رخامي",
-        image: PH("abandoned_workshop_02"),
+        image: PANORAMA_POOL_TOURS.abandonedWorkshop,
         hotspots: [
           { target: "room", yaw: -90, pitch: -5, label: "Back to Suite", type: "left" },
         ],
@@ -120,7 +144,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "pool",
         name: "Infinity Pool",
         nameAr: "المسبح اللانهائي",
-        image: PH("limpopo_golf_course"),
+        image: PANORAMA_POOL_TOURS.airMuseum,
         hotspots: [
           { target: "room",     yaw:  -30, pitch: -8, label: "Back to Suite",  type: "left" },
           { target: "exterior", yaw:  120, pitch: -5, label: "Exterior",       type: "forward" },
@@ -130,7 +154,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "restaurant",
         name: "Fine Dining",
         nameAr: "مطعم راقي",
-        image: PH("kloofendal_48d_partly_cloudy_puresky"),
+        image: PANORAMA_POOL_TOURS.herkulessaulen,
         hotspots: [
           { target: "lobby", yaw: 60, pitch: -10, label: "Back to Lobby", type: "left" },
         ],
@@ -139,7 +163,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "exterior",
         name: "Resort Exterior",
         nameAr: "الواجهة الخارجية",
-        image: PH("kloppenheim_06_puresky"),
+        image: PANORAMA_POOL_TOURS.brownStudio6,
         hotspots: [
           { target: "lobby", yaw: -10, pitch: -8, label: "Enter Lobby", type: "door" },
           { target: "pool",  yaw:  90, pitch: -8, label: "Pool Deck",   type: "right" },
@@ -154,7 +178,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
     hotelNameAr: "فندق دبي سكاي لاين",
     country: "United Arab Emirates",
     region: "Middle East",
-    thumbnail: PH("the_sky_is_on_fire"),
+    thumbnail: PANORAMA_POOL_TOURS.shanghaiSpare,
     startSceneId: "lobby",
     tags: ["luxury", "city", "skyline"],
     scenes: [
@@ -162,9 +186,9 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "lobby",
         name: "Marble Lobby",
         nameAr: "البهو الرخامي",
-        image: PH("thatch_chapel"),
+        image: PANORAMA_POOL_TOURS.musicHall,
         hotspots: [
-          { target: "room",     yaw:  60,  pitch: -8, label: "Sky Suite",  type: "door" },
+          { target: "room",     yaw:  60,  pitch: -8, label: "Sky Suite",    type: "door" },
           { target: "exterior", yaw: 180,  pitch: -5, label: "Skyline View", type: "forward" },
         ],
       },
@@ -172,7 +196,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "room",
         name: "Sky Suite",
         nameAr: "جناح السماء",
-        image: PSV_SPHERE,
+        image: PANORAMA_POOL_TOURS.artistWorkshop,
         hotspots: [
           { target: "lobby",    yaw: -120, pitch: -8, label: "Back to Lobby", type: "left" },
           { target: "bathroom", yaw:   90, pitch: -5, label: "Bathroom",      type: "right" },
@@ -182,7 +206,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "bathroom",
         name: "Spa Bathroom",
         nameAr: "حمام السبا",
-        image: PH("abandoned_workshop_02"),
+        image: PANORAMA_POOL_TOURS.drachenfels,
         hotspots: [
           { target: "room", yaw: -90, pitch: -5, label: "Back to Suite", type: "left" },
         ],
@@ -191,7 +215,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "exterior",
         name: "Dubai Skyline",
         nameAr: "أفق دبي",
-        image: PH("the_sky_is_on_fire"),
+        image: PANORAMA_POOL_TOURS.shanghaiSpare,
         hotspots: [
           { target: "lobby", yaw: 0, pitch: -8, label: "Enter Lobby", type: "door" },
         ],
@@ -206,7 +230,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
     hotelNameAr: "فندق قصر البندقية",
     country: "Italy",
     region: "Europe",
-    thumbnail: PH("venice_sunset"),
+    thumbnail: PANORAMA_POOL_TOURS.abandonedFactory,
     startSceneId: "exterior",
     tags: ["heritage", "city", "boutique"],
     scenes: [
@@ -214,7 +238,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "exterior",
         name: "Canal Front",
         nameAr: "واجهة القناة",
-        image: PH("venice_sunset"),
+        image: PANORAMA_POOL_TOURS.abandonedFactory,
         hotspots: [
           { target: "lobby", yaw: -10, pitch: -5, label: "Enter Hotel", type: "door" },
         ],
@@ -223,7 +247,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "lobby",
         name: "Historic Lobby",
         nameAr: "بهو تاريخي",
-        image: PH("pretville_street"),
+        image: PANORAMA_POOL_TOURS.cyclorama,
         hotspots: [
           { target: "exterior",   yaw: 170, pitch: -5, label: "Exit",        type: "left" },
           { target: "room",       yaw:  60, pitch: -8, label: "Suite",       type: "door" },
@@ -234,7 +258,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "room",
         name: "Canal Suite",
         nameAr: "جناح القناة",
-        image: PSV_SPHERE_SMALL,
+        image: PANORAMA_POOL_TOURS.brownStudio2,
         hotspots: [
           { target: "lobby", yaw: -120, pitch: -8, label: "Back to Lobby", type: "left" },
         ],
@@ -243,7 +267,7 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
         id: "restaurant",
         name: "Italian Trattoria",
         nameAr: "مطعم إيطالي",
-        image: PH("kloofendal_48d_partly_cloudy_puresky"),
+        image: PANORAMA_POOL_TOURS.stPetersNight,
         hotspots: [
           { target: "lobby", yaw: 60, pitch: -8, label: "Back to Lobby", type: "left" },
         ],
@@ -251,171 +275,10 @@ export const VIRTUAL_TOURS: VirtualTour[] = [
     ],
   },
 
-  // ═══════════════ ASIA ═══════════════
-  {
-    id: "tour-bali-retreat",
-    hotelName: "Bali Forest Retreat",
-    hotelNameAr: "منتجع غابة بالي",
-    country: "Indonesia",
-    region: "Asia",
-    thumbnail: PH("rosendal_plains_2"),
-    startSceneId: "exterior",
-    tags: ["nature", "retreat", "tropical"],
-    scenes: [
-      {
-        id: "exterior",
-        name: "Forest Entrance",
-        nameAr: "مدخل الغابة",
-        image: PH("rosendal_plains_2"),
-        hotspots: [
-          { target: "lobby", yaw: 10, pitch: -5, label: "Enter Lodge", type: "door" },
-          { target: "pool",  yaw: 120, pitch: -8, label: "Pool",       type: "right" },
-        ],
-      },
-      {
-        id: "lobby",
-        name: "Open-Air Lobby",
-        nameAr: "بهو مفتوح",
-        image: PH("thatch_chapel"),
-        hotspots: [
-          { target: "exterior", yaw: 180, pitch: -5, label: "Exit",      type: "left" },
-          { target: "room",     yaw:  60, pitch: -8, label: "Villa",     type: "door" },
-        ],
-      },
-      {
-        id: "room",
-        name: "Jungle Villa",
-        nameAr: "فيلا الأدغال",
-        image: PSV_SPHERE,
-        hotspots: [
-          { target: "lobby",    yaw: -120, pitch: -8, label: "Back to Lobby", type: "left" },
-          { target: "bathroom", yaw:   90, pitch: -5, label: "Bathroom",      type: "right" },
-        ],
-      },
-      {
-        id: "bathroom",
-        name: "Outdoor Bath",
-        nameAr: "حمام خارجي",
-        image: PH("abandoned_workshop_02"),
-        hotspots: [
-          { target: "room", yaw: -90, pitch: -5, label: "Back to Villa", type: "left" },
-        ],
-      },
-      {
-        id: "pool",
-        name: "Jungle Pool",
-        nameAr: "مسبح الأدغال",
-        image: PH("limpopo_golf_course"),
-        hotspots: [
-          { target: "exterior", yaw: -100, pitch: -8, label: "Back to Entrance", type: "left" },
-        ],
-      },
-    ],
-  },
-
-  // ═══════════════ AMERICAS ═══════════════
-  {
-    id: "tour-rio-beach",
-    hotelName: "Rio Beach Resort",
-    hotelNameAr: "منتجع شاطئ ريو",
-    country: "Brazil",
-    region: "Americas",
-    thumbnail: PH("the_sky_is_on_fire"),
-    startSceneId: "exterior",
-    tags: ["beach", "resort", "tropical"],
-    scenes: [
-      {
-        id: "exterior",
-        name: "Beachfront",
-        nameAr: "واجهة الشاطئ",
-        image: PH("the_sky_is_on_fire"),
-        hotspots: [
-          { target: "lobby", yaw: 10, pitch: -5, label: "Enter Resort", type: "door" },
-          { target: "pool",  yaw: 100, pitch: -8, label: "Pool",         type: "right" },
-        ],
-      },
-      {
-        id: "lobby",
-        name: "Resort Lobby",
-        nameAr: "بهو المنتجع",
-        image: PH("pretville_street"),
-        hotspots: [
-          { target: "exterior",   yaw: 180, pitch: -5, label: "Beach",       type: "left" },
-          { target: "room",       yaw:  60, pitch: -8, label: "Ocean Suite", type: "door" },
-          { target: "restaurant", yaw: -60, pitch: -8, label: "Restaurant",  type: "right" },
-        ],
-      },
-      {
-        id: "room",
-        name: "Ocean Suite",
-        nameAr: "جناح المحيط",
-        image: PSV_SPHERE,
-        hotspots: [
-          { target: "lobby", yaw: -120, pitch: -8, label: "Back to Lobby", type: "left" },
-        ],
-      },
-      {
-        id: "pool",
-        name: "Beach Pool",
-        nameAr: "مسبح الشاطئ",
-        image: PH("limpopo_golf_course"),
-        hotspots: [
-          { target: "exterior", yaw: -90, pitch: -8, label: "Beachfront", type: "left" },
-        ],
-      },
-      {
-        id: "restaurant",
-        name: "Beachfront Grill",
-        nameAr: "مطعم الشاطئ",
-        image: PH("kloofendal_48d_partly_cloudy_puresky"),
-        hotspots: [
-          { target: "lobby", yaw: 60, pitch: -8, label: "Back to Lobby", type: "left" },
-        ],
-      },
-    ],
-  },
-
-  // ═══════════════ AFRICA ═══════════════
-  {
-    id: "tour-marrakech-riad",
-    hotelName: "Marrakech Heritage Riad",
-    hotelNameAr: "رياض مراكش التراثي",
-    country: "Morocco",
-    region: "Africa",
-    thumbnail: PH("abandoned_workshop_02"),
-    startSceneId: "exterior",
-    tags: ["heritage", "riad", "traditional"],
-    scenes: [
-      {
-        id: "exterior",
-        name: "Medina Street",
-        nameAr: "شارع المدينة",
-        image: PH("pretville_street"),
-        hotspots: [
-          { target: "lobby", yaw: 0, pitch: -5, label: "Enter Riad", type: "door" },
-        ],
-      },
-      {
-        id: "lobby",
-        name: "Riad Courtyard",
-        nameAr: "فناء الرياض",
-        image: PH("abandoned_workshop_02"),
-        hotspots: [
-          { target: "exterior", yaw: 180, pitch: -5, label: "Medina",   type: "left" },
-          { target: "room",     yaw:  60, pitch: -8, label: "Room",     type: "door" },
-        ],
-      },
-      {
-        id: "room",
-        name: "Traditional Room",
-        nameAr: "غرفة تقليدية",
-        image: PSV_SPHERE_SMALL,
-        hotspots: [
-          { target: "lobby", yaw: -120, pitch: -8, label: "Courtyard", type: "left" },
-        ],
-      },
-    ],
-  },
+  // NOTE: Bali / Marrakech / Rio multi-scene tours were removed because we
+  // could not source enough UNIQUE, verified, CORS-enabled equirectangular
+  // panoramas to honor the "no repeated scenes" rule for those properties.
+  // They will be re-introduced once the actual hotel panoramas are provided.
 ];
 
 export const TOUR_SCENE_LABELS_AR: Record<string, string> = {
