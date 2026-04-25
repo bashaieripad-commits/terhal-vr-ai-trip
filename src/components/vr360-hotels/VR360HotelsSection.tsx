@@ -105,6 +105,9 @@ export const VR360HotelsSection = () => {
   const [activePreview, setActivePreview] = useState<VR360HotelVideo | null>(
     null
   );
+  const [activeYouTube, setActiveYouTube] = useState<YouTube360Item | null>(
+    null
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -116,10 +119,11 @@ export const VR360HotelsSection = () => {
     };
   }, []);
 
-  // Tours first — they're the headline experience.
+  // Tours first — they're the headline experience. YouTube 360s sit alongside previews.
   const allItems: GridItem[] = useMemo(
     () => [
       ...VIRTUAL_TOURS.map((t) => ({ kind: "tour" as const, tour: t })),
+      ...YOUTUBE_360_ITEMS.map((y) => ({ kind: "youtube" as const, yt: y })),
       ...previews.map((v) => ({ kind: "preview" as const, video: v })),
     ],
     [previews]
@@ -127,13 +131,17 @@ export const VR360HotelsSection = () => {
 
   const filteredItems = useMemo(() => {
     return allItems.filter((i) => {
-      // Tier filter
+      // Tier filter — YouTube 360s count as "360 Preview"
       if (tier === "Full Virtual Tour" && i.kind !== "tour") return false;
-      if (tier === "360 Preview" && i.kind !== "preview") return false;
-      // Category filter (tours don't carry a category, treat as "Resort")
+      if (tier === "360 Preview" && i.kind === "tour") return false;
+      // Category filter (tours -> "Resort", YouTube -> "Landmark")
       if (category !== "All") {
         const cat: VR360Category =
-          i.kind === "tour" ? "Resort" : i.video.category;
+          i.kind === "tour"
+            ? "Resort"
+            : i.kind === "youtube"
+            ? "Landmark"
+            : i.video.category;
         if (cat !== category) return false;
       }
       return true;
@@ -141,7 +149,7 @@ export const VR360HotelsSection = () => {
   }, [allItems, tier, category]);
 
   const tourCount = allItems.filter((i) => i.kind === "tour").length;
-  const previewCount = allItems.filter((i) => i.kind === "preview").length;
+  const previewCount = allItems.filter((i) => i.kind !== "tour").length;
 
   return (
     <section
