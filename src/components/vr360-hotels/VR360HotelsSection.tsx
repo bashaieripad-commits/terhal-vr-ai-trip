@@ -193,14 +193,14 @@ export const VR360HotelsSection = () => {
                       <Badge className="absolute top-3 left-3 rtl:left-auto rtl:right-3 bg-primary text-primary-foreground border-0 backdrop-blur-md shadow-md flex items-center gap-1 px-2.5 py-1">
                         <Footprints className="h-3 w-3" />
                         <span className="text-[10px] font-bold tracking-wider">
-                          {language === "ar" ? "جولة افتراضية كاملة" : "Full Virtual Tour"}
+                          {language === "ar" ? "جولة 360 تفاعلية" : "Interactive 360 Tour"}
                         </span>
                       </Badge>
                     ) : (
                       <Badge className="absolute top-3 left-3 rtl:left-auto rtl:right-3 bg-background/90 text-foreground border-0 backdrop-blur-md shadow-sm flex items-center gap-1 px-2.5 py-1">
                         <Eye className="h-3 w-3 text-primary" />
                         <span className="text-[10px] font-bold tracking-wider">
-                          {language === "ar" ? "معاينة 360" : "360 Preview"}
+                          {language === "ar" ? "مشهد 360 فريد" : "Unique 360 Scene"}
                         </span>
                       </Badge>
                     )}
