@@ -154,14 +154,12 @@ export const VR360HotelsSection = () => {
             id="vr360hotels-title"
             className="text-4xl md:text-5xl font-bold mb-4 tracking-tight"
           >
-            {language === "ar"
-              ? "تجربة 360° الغامرة"
-              : "Immersive 360° Experiences"}
+            {language === "ar" ? "استكشف بتقنية VR" : "Explore with VR"}
           </h2>
           <p className="text-muted-foreground text-lg leading-relaxed">
             {language === "ar"
-              ? "جولات افتراضية متعددة الغرف ومعاينات 360° لمناظر حقيقية حول العالم. اسحب للنظر، انقر على النقاط للتنقل."
-              : "Multi-room virtual walk-throughs and 360° previews of real places around the world. Drag to look, tap hotspots to move."}
+              ? "جرّب الغرف والفنادق قبل الحجز"
+              : "Experience rooms and hotels before booking"}
           </p>
 
           {/* Honesty key — explains the tier system upfront */}
