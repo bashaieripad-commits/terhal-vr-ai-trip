@@ -360,7 +360,7 @@ export const ImmersiveVR360Viewer = ({
 
       {/* Three.js canvas mount OR admin notice */}
       <div className="relative flex-1 w-full h-full overflow-hidden">
-        {video.mp4Url ? (
+        {(video.mp4Url || video.imageUrl) ? (
           <>
             <div ref={mountRef} className="absolute inset-0 w-full h-full" />
 
