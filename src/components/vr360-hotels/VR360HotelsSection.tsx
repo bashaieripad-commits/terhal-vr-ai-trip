@@ -74,11 +74,14 @@ const CATEGORY_ICONS: Record<CategoryFilter, typeof Building2> = {
 // Discriminated union — every card is either a Full Virtual Tour or a 360 Preview.
 type GridItem =
   | { kind: "tour"; tour: VirtualTour }
-  | { kind: "preview"; video: VR360HotelVideo };
+  | { kind: "preview"; video: VR360HotelVideo }
+  | { kind: "youtube"; yt: YouTube360Item };
 
 const itemKey = (item: GridItem): string =>
   item.kind === "tour"
     ? `tour-${item.tour.id}`
+    : item.kind === "youtube"
+    ? `yt-${item.yt.id}`
     : `preview-${item.video.title}`;
 
 const CATEGORY_FILTERS: CategoryFilter[] = [
