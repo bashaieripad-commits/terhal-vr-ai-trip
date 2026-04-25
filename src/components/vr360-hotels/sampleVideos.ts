@@ -1,31 +1,25 @@
 // ─────────────────────────────────────────────────────────────────────────
-// REAL, UNIQUE 360°/VR PREVIEW EXPERIENCES
+// REAL, UNIQUE 360° DESTINATION PREVIEWS  (Tier 3 — "360 Preview")
 // ─────────────────────────────────────────────────────────────────────────
 //
-// ADMIN NOTE — IMPORTANT (read before editing):
+// HONESTY RULES (per user spec):
+//   1. No invented hotel names. Cards describe what the panorama ACTUALLY
+//      depicts (a desert, a coast, a city street, a mountain).
+//   2. Every panorama is unique across the whole VR section.
+//   3. Every URL is verified (HTTP 200, CORS-enabled) so it renders inside
+//      the white-label Three.js inverted-sphere viewer with full mouse +
+//      touch drag.
+//   4. These are clearly labeled as "360 Preview" — look-around only,
+//      no movement between scenes. Multi-scene Walk-Throughs live in
+//      ./virtualTours.ts and carry the "Full Virtual Tour" badge.
 //
-// The user opted out of Google Street View integration (which would require
-// a Google Maps JavaScript API key + a Google Cloud billing account, and
-// would force Google's branding/attribution to remain visible per Google
-// ToS). Instead, this dataset hand-picks ONE unique, verified equirectangular
-// panorama per card so that:
-//
-//   1. No two cards open the same scene.
-//   2. Each panorama's mood/scenery is consistent with the card's title and
-//      country (e.g. desert HDRIs for Middle-East deserts, snowy forest for
-//      a Hokkaido winter card, night city HDRI for a Manhattan dusk card).
-//   3. Every URL has been verified live (HTTP 200, CORS-enabled) so it
-//      works as a Three.js video / texture source inside the white-label
-//      inverted-sphere viewer with full mouse/touch drag support.
-//
-// To plug the *actual* hotel/property panorama later, simply replace that
-// card's `imageUrl` with its equirectangular JPG (CORS-enabled). Nothing
-// else needs to change — the viewer will just work.
-//
-// REPETITION RULE: each Polyhaven slug below appears AT MOST ONCE across
-// SAMPLE_VR360_HOTELS (this file) and VIRTUAL_TOURS (./virtualTours.ts).
-// If you add a new card, pick an unused slug. The full verified pool is
-// listed in PANORAMA_POOL below.
+// STREET VIEW NOTE:
+//   The user opted out of providing a Google Maps JavaScript API key.
+//   Google's keyless `output=svembed` URL pattern returns
+//   `X-Frame-Options: SAMEORIGIN` (verified live), so it CANNOT be
+//   embedded in an iframe. Therefore Tier 2 ("Real Street View") is
+//   intentionally OMITTED rather than faked. Add a Maps API key to
+//   re-enable it cleanly.
 // ─────────────────────────────────────────────────────────────────────────
 
 export type VR360Region =
@@ -36,8 +30,8 @@ export type VR360Region =
   | "Americas";
 
 export type VR360Category =
-  | "Hotel"
   | "Resort"
+  | "Beach"
   | "Landscape"
   | "City"
   | "Nature"
@@ -53,21 +47,16 @@ export interface VR360HotelVideo {
   /** Card thumbnail (uses the same panorama by default). */
   thumbnail: string;
   tags: string[];
-  /**
-   * Optional equirectangular 360° MP4 (CORS-enabled). Present only when an
-   * animated video panorama is available; the still `imageUrl` is preferred
-   * because it guarantees a unique, high-quality scene per card.
-   */
+  /** Optional CORS-enabled equirectangular MP4 (rare). */
   mp4Url?: string;
 }
 
 // ─── Verified CORS-enabled equirectangular JPG sources ────────────────────
-// All URLs verified HTTP 200 + CORS-allow-origin: *.
 const PH = (slug: string) =>
   `https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/${slug}.jpg`;
 
-// Full pool of verified, unique panoramas. Slugs used here are removed from
-// the pool so virtualTours.ts can pick remaining slugs for its scenes.
+// Slugs reserved for previews. Each appears AT MOST ONCE here AND must not
+// appear in virtualTours.ts.
 export const PANORAMA_POOL_PREVIEWS = {
   desertSunset: PH("kloppenheim_06_puresky"),
   desertDawn: PH("the_sky_is_on_fire"),
@@ -96,222 +85,224 @@ export const PANORAMA_POOL_PREVIEWS = {
   dikhololoNight: PH("dikhololo_night"),
 } as const;
 
+// Each card title describes ONLY what the panorama actually shows — no
+// invented hotel names, no fake interiors.
 export const SAMPLE_VR360_HOTELS: VR360HotelVideo[] = [
   // ═══════════════ MIDDLE EAST ═══════════════
   {
-    title: "Empty Quarter Dunes at Sunset — 360°",
+    title: "Arabian Desert at Sunset",
     country: "United Arab Emirates",
     region: "Middle East",
     category: "Landscape",
     imageUrl: PANORAMA_POOL_PREVIEWS.desertSunset,
     thumbnail: PANORAMA_POOL_PREVIEWS.desertSunset,
-    tags: ["360", "desert", "sunset", "uae"],
+    tags: ["desert", "sunset", "uae"],
   },
   {
-    title: "Wadi Rum Golden Dawn — 360° Panorama",
+    title: "Desert Dawn — Wadi Style Sky",
     country: "Jordan",
     region: "Middle East",
     category: "Nature",
     imageUrl: PANORAMA_POOL_PREVIEWS.desertDawn,
     thumbnail: PANORAMA_POOL_PREVIEWS.desertDawn,
-    tags: ["360", "wadi rum", "dawn", "jordan"],
+    tags: ["wadi", "dawn", "jordan"],
   },
   {
-    title: "Omani Desert Clear Sky — 360°",
+    title: "Open Desert, Clear Sky",
     country: "Oman",
     region: "Middle East",
     category: "Landscape",
     imageUrl: PANORAMA_POOL_PREVIEWS.desertClear,
     thumbnail: PANORAMA_POOL_PREVIEWS.desertClear,
-    tags: ["360", "oman", "desert", "sky"],
+    tags: ["oman", "desert", "sky"],
   },
   {
-    title: "Doha Desert Resort Dusk — 360°",
+    title: "Desert Resort Greens at Dusk",
     country: "Qatar",
     region: "Middle East",
     category: "Resort",
     imageUrl: PANORAMA_POOL_PREVIEWS.duskGolf,
     thumbnail: PANORAMA_POOL_PREVIEWS.duskGolf,
-    tags: ["360", "qatar", "resort", "dusk"],
+    tags: ["qatar", "resort", "dusk"],
   },
 
   // ═══════════════ EUROPE ═══════════════
   {
-    title: "Venetian Canal at Golden Hour — 360°",
+    title: "Venetian Canal at Golden Hour",
     country: "Italy",
     region: "Europe",
     category: "City",
     imageUrl: PANORAMA_POOL_PREVIEWS.veniceSunset,
     thumbnail: PANORAMA_POOL_PREVIEWS.veniceSunset,
-    tags: ["360", "venice", "city", "sunset"],
+    tags: ["venice", "city", "sunset"],
   },
   {
-    title: "Swiss Alpine Sunrise Panorama — 360°",
+    title: "Alpine Sunrise Panorama",
     country: "Switzerland",
     region: "Europe",
     category: "Landscape",
     imageUrl: PANORAMA_POOL_PREVIEWS.alpineSunrise,
     thumbnail: PANORAMA_POOL_PREVIEWS.alpineSunrise,
-    tags: ["360", "alps", "sunrise", "mountain"],
+    tags: ["alps", "sunrise", "mountain"],
   },
   {
-    title: "Sunflower Fields of Provence — 360°",
+    title: "Provence Sunflower Fields",
     country: "France",
     region: "Europe",
     category: "Nature",
     imageUrl: PANORAMA_POOL_PREVIEWS.sunflowersField,
     thumbnail: PANORAMA_POOL_PREVIEWS.sunflowersField,
-    tags: ["360", "provence", "fields", "france"],
+    tags: ["provence", "fields", "france"],
   },
   {
-    title: "Belfast Coastal Sunset — 360°",
+    title: "Belfast Coastal Sunset",
     country: "United Kingdom",
     region: "Europe",
     category: "Landscape",
     imageUrl: PANORAMA_POOL_PREVIEWS.belfastSunset,
     thumbnail: PANORAMA_POOL_PREVIEWS.belfastSunset,
-    tags: ["360", "belfast", "sunset", "coast"],
+    tags: ["belfast", "sunset", "coast"],
   },
   {
-    title: "Bavarian Highlands Open Sky — 360°",
+    title: "Bavarian Highlands, Open Sky",
     country: "Germany",
     region: "Europe",
     category: "Nature",
     imageUrl: PANORAMA_POOL_PREVIEWS.hillyPureSky,
     thumbnail: PANORAMA_POOL_PREVIEWS.hillyPureSky,
-    tags: ["360", "bavaria", "hills", "germany"],
+    tags: ["bavaria", "hills", "germany"],
   },
 
   // ═══════════════ ASIA ═══════════════
   {
-    title: "Hokkaido Snowy Forest Trail — 360°",
+    title: "Snowy Forest Trail",
     country: "Japan",
     region: "Asia",
     category: "Nature",
     imageUrl: PANORAMA_POOL_PREVIEWS.snowyForest,
     thumbnail: PANORAMA_POOL_PREVIEWS.snowyForest,
-    tags: ["360", "japan", "snow", "hokkaido"],
+    tags: ["japan", "snow", "hokkaido"],
   },
   {
-    title: "Shanghai Bund Riverfront — 360° City",
+    title: "Shanghai Bund Riverfront",
     country: "China",
     region: "Asia",
     category: "City",
     imageUrl: PANORAMA_POOL_PREVIEWS.shanghaiBund,
     thumbnail: PANORAMA_POOL_PREVIEWS.shanghaiBund,
-    tags: ["360", "shanghai", "bund", "city"],
+    tags: ["shanghai", "bund", "city"],
   },
   {
-    title: "Bali Green Plains Retreat — 360°",
+    title: "Tropical Green Plains",
     country: "Indonesia",
     region: "Asia",
     category: "Nature",
     imageUrl: PANORAMA_POOL_PREVIEWS.greenPlains,
     thumbnail: PANORAMA_POOL_PREVIEWS.greenPlains,
-    tags: ["360", "bali", "plains", "nature"],
+    tags: ["bali", "plains", "nature"],
   },
 
   // ═══════════════ AFRICA ═══════════════
   {
-    title: "Limpopo Safari Lodge Fairway — 360°",
+    title: "Safari Lodge Fairway",
     country: "South Africa",
     region: "Africa",
     category: "Resort",
     imageUrl: PANORAMA_POOL_PREVIEWS.golfCourse,
     thumbnail: PANORAMA_POOL_PREVIEWS.golfCourse,
-    tags: ["360", "safari", "lodge", "limpopo"],
+    tags: ["safari", "lodge", "limpopo"],
   },
   {
-    title: "Kruger Starry Night — 360° Landscape",
+    title: "Kruger Starry Night",
     country: "South Africa",
     region: "Africa",
     category: "Landscape",
     imageUrl: PANORAMA_POOL_PREVIEWS.starryNight,
     thumbnail: PANORAMA_POOL_PREVIEWS.starryNight,
-    tags: ["360", "kruger", "stars", "night"],
+    tags: ["kruger", "stars", "night"],
   },
   {
-    title: "Cape Town Hillside Vista — 360°",
+    title: "Cape Town Hillside Vista",
     country: "South Africa",
     region: "Africa",
     category: "Landscape",
     imageUrl: PANORAMA_POOL_PREVIEWS.capeHill,
     thumbnail: PANORAMA_POOL_PREVIEWS.capeHill,
-    tags: ["360", "cape town", "hill", "south africa"],
+    tags: ["cape town", "hill", "south africa"],
   },
   {
-    title: "Karoo Open Plains — 360° Nature",
+    title: "Karoo Open Plains",
     country: "Namibia",
     region: "Africa",
     category: "Nature",
     imageUrl: PANORAMA_POOL_PREVIEWS.meal,
     thumbnail: PANORAMA_POOL_PREVIEWS.meal,
-    tags: ["360", "namibia", "plains", "karoo"],
+    tags: ["namibia", "plains", "karoo"],
   },
 
   // ═══════════════ AMERICAS ═══════════════
   {
-    title: "Manhattan Cobblestone at Night — 360°",
+    title: "Cobblestone Street at Night",
     country: "United States",
     region: "Americas",
     category: "City",
     imageUrl: PANORAMA_POOL_PREVIEWS.cobbleNight,
     thumbnail: PANORAMA_POOL_PREVIEWS.cobbleNight,
-    tags: ["360", "new york", "night", "city"],
+    tags: ["new york", "night", "city"],
   },
   {
-    title: "Costa Rica Rainforest Meadow — 360°",
+    title: "Rainforest Meadow at Noon",
     country: "Costa Rica",
     region: "Americas",
     category: "Nature",
     imageUrl: PANORAMA_POOL_PREVIEWS.noonGrass,
     thumbnail: PANORAMA_POOL_PREVIEWS.noonGrass,
-    tags: ["360", "rainforest", "meadow", "nature"],
+    tags: ["rainforest", "meadow", "nature"],
   },
   {
-    title: "Patagonia Lagoon — 360° Landscape",
+    title: "Patagonia Blue Lagoon",
     country: "Argentina",
     region: "Americas",
     category: "Landscape",
     imageUrl: PANORAMA_POOL_PREVIEWS.blueLagoon,
     thumbnail: PANORAMA_POOL_PREVIEWS.blueLagoon,
-    tags: ["360", "patagonia", "lagoon", "landscape"],
+    tags: ["patagonia", "lagoon", "landscape"],
   },
   {
-    title: "Copacabana Industrial Sunset — 360°",
+    title: "Coastal Industrial Sunset",
     country: "Brazil",
     region: "Americas",
     category: "City",
     imageUrl: PANORAMA_POOL_PREVIEWS.industrialSunset,
     thumbnail: PANORAMA_POOL_PREVIEWS.industrialSunset,
-    tags: ["360", "rio", "sunset", "city"],
+    tags: ["rio", "sunset", "city"],
   },
   {
-    title: "Andes Foothill Vista — 360° Landmark",
+    title: "Andes Foothill Vista",
     country: "Peru",
     region: "Americas",
     category: "Landmark",
     imageUrl: PANORAMA_POOL_PREVIEWS.tableMountain,
     thumbnail: PANORAMA_POOL_PREVIEWS.tableMountain,
-    tags: ["360", "andes", "vista", "peru"],
+    tags: ["andes", "vista", "peru"],
   },
   {
-    title: "Atacama Night Sky — 360° Nature",
+    title: "Atacama Night Sky",
     country: "Chile",
     region: "Americas",
     category: "Nature",
     imageUrl: PANORAMA_POOL_PREVIEWS.dikhololoNight,
     thumbnail: PANORAMA_POOL_PREVIEWS.dikhololoNight,
-    tags: ["360", "atacama", "night", "stars"],
+    tags: ["atacama", "night", "stars"],
   },
   {
-    title: "Toronto Suburban Drive — 360° City",
+    title: "Suburban Drive at Dusk",
     country: "Canada",
     region: "Americas",
     category: "City",
     imageUrl: PANORAMA_POOL_PREVIEWS.preller,
     thumbnail: PANORAMA_POOL_PREVIEWS.preller,
-    tags: ["360", "toronto", "drive", "city"],
+    tags: ["toronto", "drive", "city"],
   },
 ];
 
