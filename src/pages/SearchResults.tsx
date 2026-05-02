@@ -37,19 +37,91 @@ const mapSearchTypeToFilters = (type: string) => {
   return ["all"];
 };
 
+const STORAGE_KEY = "tarhal:searchResults:lastState";
+
+interface PersistedSearchState {
+  q?: string;
+  type?: string;
+  from?: string;
+  to?: string;
+  date?: string;
+  checkIn?: string;
+  checkOut?: string;
+  selectedTypes?: string[];
+  priceRange?: [number, number];
+  nameFilter?: string;
+}
+
+const loadPersisted = (): PersistedSearchState | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as PersistedSearchState) : null;
+  } catch {
+    return null;
+  }
+};
+
+const savePersisted = (state: PersistedSearchState) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Quota / private mode — silently ignore.
+  }
+};
+
 const SearchResults = () => {
-  const [searchParams] = useSearchParams();
-  const [priceRange, setPriceRange] = useState([0, 5000]);
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { language } = useLanguage();
+
+  // One-time hydration from localStorage when the page is opened with no
+  // search params at all (i.e. the user navigated back to /search directly).
+  const hydratedRef = useRef(false);
+  if (!hydratedRef.current) {
+    hydratedRef.current = true;
+    const hasAnyParam = Array.from(searchParams.keys()).length > 0;
+    if (!hasAnyParam) {
+      const persisted = loadPersisted();
+      if (persisted) {
+        const next = new URLSearchParams();
+        if (persisted.type) next.set("type", persisted.type);
+        if (persisted.q) next.set("q", persisted.q);
+        if (persisted.from) next.set("from", persisted.from);
+        if (persisted.to) next.set("to", persisted.to);
+        if (persisted.date) next.set("date", persisted.date);
+        if (persisted.checkIn) next.set("checkIn", persisted.checkIn);
+        if (persisted.checkOut) next.set("checkOut", persisted.checkOut);
+        if (Array.from(next.keys()).length > 0) {
+          // Replace so back button doesn't bounce to the empty state.
+          setSearchParams(next, { replace: true });
+        }
+      }
+    }
+  }
+
+  const persisted = loadPersisted();
+  const [priceRange, setPriceRange] = useState<number[]>(
+    persisted?.priceRange ?? [0, 5000],
+  );
   const [results, setResults] = useState<ContentItem[]>([]);
   const [allResults, setAllResults] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(() => mapSearchTypeToFilters(searchParams.get("type") || "all"));
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(() => {
+    const fromUrl = searchParams.get("type");
+    if (fromUrl) return mapSearchTypeToFilters(fromUrl);
+    if (persisted?.selectedTypes && persisted.selectedTypes.length > 0) {
+      return persisted.selectedTypes;
+    }
+    return mapSearchTypeToFilters("all");
+  });
   const [showFilters, setShowFilters] = useState(false);
-  const [nameFilter, setNameFilter] = useState(searchParams.get("q") || "");
+  const [nameFilter, setNameFilter] = useState(
+    searchParams.get("q") ?? persisted?.nameFilter ?? "",
+  );
 
   // Read search params
   const searchType = searchParams.get("type") || "all";
@@ -70,6 +142,34 @@ const SearchResults = () => {
   useEffect(() => {
     setNameFilter(searchQuery);
   }, [searchQuery]);
+
+  // Persist the latest search context whenever URL params or in-page
+  // filters change so it can be restored on a future visit.
+  useEffect(() => {
+    savePersisted({
+      q: searchQuery || undefined,
+      type: searchType,
+      from: searchFrom || undefined,
+      to: searchTo || undefined,
+      date: searchDate || undefined,
+      checkIn: searchCheckIn || undefined,
+      checkOut: searchCheckOut || undefined,
+      selectedTypes,
+      priceRange: [priceRange[0], priceRange[1]],
+      nameFilter: nameFilter || undefined,
+    });
+  }, [
+    searchQuery,
+    searchType,
+    searchFrom,
+    searchTo,
+    searchDate,
+    searchCheckIn,
+    searchCheckOut,
+    selectedTypes,
+    priceRange,
+    nameFilter,
+  ]);
 
   useEffect(() => {
     fetchContent();
