@@ -49,7 +49,7 @@ const SearchResults = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(() => mapSearchTypeToFilters(searchParams.get("type") || "all"));
   const [showFilters, setShowFilters] = useState(false);
-  const [nameFilter, setNameFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState(searchParams.get("q") || "");
 
   // Read search params
   const searchType = searchParams.get("type") || "all";
@@ -63,6 +63,13 @@ const SearchResults = () => {
   useEffect(() => {
     setSelectedTypes(mapSearchTypeToFilters(searchType));
   }, [searchType]);
+
+  // Keep the in-page name filter in sync with the URL `q` param so that
+  // submitting a query from GlobalSearch (or any link) immediately filters
+  // the visible results without requiring extra typing.
+  useEffect(() => {
+    setNameFilter(searchQuery);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchContent();
