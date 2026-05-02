@@ -132,8 +132,9 @@ const Checkout = () => {
       
       if (user) {
         // Create reservation in database
-        const reservationPromises = items.map((item) =>
-          supabase.from("reservations").insert({
+        const reservationPromises = items.map((item) => {
+          const passenger = item.type === "flight" ? passengers[item.id] : null;
+          return supabase.from("reservations").insert({
             user_id: user.id,
             type: item.type,
             item_name: item.name,
@@ -148,9 +149,28 @@ const Checkout = () => {
               location: item.location,
               image: item.image,
               nights: item.nights || null,
+              ...(passenger
+                ? {
+                    passenger: {
+                      full_name: passenger.fullName,
+                      doc_type: passenger.docType,
+                      doc_number: passenger.docNumber,
+                      nationality: passenger.nationality,
+                      dob: passenger.dob,
+                      gender: passenger.gender,
+                      email: passenger.email,
+                      phone: passenger.phone,
+                      baggage: passenger.baggage,
+                      meal: passenger.meal,
+                      special_assistance: passenger.specialAssistance,
+                    },
+                    pnr: ref.split("-").pop(),
+                    e_ticket: `ETKT-${ref}`,
+                  }
+                : {}),
             },
-          })
-        );
+          });
+        });
 
         const results = await Promise.all(reservationPromises);
         const errors = results.filter((r) => r.error);
