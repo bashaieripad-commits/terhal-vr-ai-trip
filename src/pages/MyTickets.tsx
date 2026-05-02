@@ -277,6 +277,33 @@ const MyTickets = () => {
 
   const handleSubmitResale = async () => {
     if (!selectedTicketForResell || !resellPrice) return;
+
+    // Block flight resale
+    if (selectedBookingForResell?.type === "flight") {
+      toast.error(
+        isAr
+          ? "تذاكر الطيران لا يمكن إعادة بيعها لأنها مرتبطة بالهوية الشخصية."
+          : "Flight tickets cannot be resold due to personal & security info requirements."
+      );
+      return;
+    }
+
+    // Enforce resale price <= original purchase price
+    const originalPrice = Number(selectedBookingForResell?.total_price ?? 0);
+    const requested = Number(resellPrice);
+    if (!Number.isFinite(requested) || requested <= 0) {
+      toast.error(isAr ? "أدخل سعراً صحيحاً" : "Enter a valid price");
+      return;
+    }
+    if (originalPrice > 0 && requested > originalPrice) {
+      toast.error(
+        isAr
+          ? `سعر إعادة البيع يجب ألا يتجاوز السعر الأصلي (${originalPrice} ر.س)`
+          : `Resale price must not exceed the original price (${originalPrice} SAR)`
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { error } = await supabase
@@ -284,7 +311,7 @@ const MyTickets = () => {
         .update({
           is_resellable: true,
           resell_status: "listed",
-          resell_price: Number(resellPrice),
+          resell_price: requested,
         })
         .eq("id", selectedTicketForResell.id);
 
