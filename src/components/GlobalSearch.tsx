@@ -337,6 +337,24 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
             activeIndex={activeIndex}
             onPick={submitQuery}
             onHover={setActiveIndex}
+            action={
+              recents.length > 0 ? (
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    clearRecents(language);
+                    setRecents([]);
+                  }}
+                  className="ml-auto rtl:ml-0 rtl:mr-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors normal-case"
+                  aria-label={language === "ar" ? "مسح الاقتراحات الأخيرة" : "Clear recent suggestions"}
+                  title={language === "ar" ? "مسح الاقتراحات الأخيرة" : "Clear recent suggestions"}
+                >
+                  <X className="h-3 w-3" />
+                  {language === "ar" ? "مسح" : "Clear"}
+                </button>
+              ) : null
+            }
           />
           <SuggestionGroup
             icon={<Snowflake className="h-4 w-4 text-sandy-gold" />}
