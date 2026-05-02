@@ -67,16 +67,22 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
       const term = raw.trim();
       if (!term) return;
       // Fire-and-forget log (do not block navigation; respect RLS).
+      // Server-side de-dup: a unique index suppresses repeats of the same
+      // normalized query from the same user within a 10-minute window.
       try {
         const { data: sessionData } = await supabase.auth.getSession();
-        await supabase.from("search_queries").insert({
+        const { error: logError } = await supabase.from("search_queries").insert({
           query: term.slice(0, 200),
           city: data.city,
           language,
           user_id: sessionData.session?.user.id ?? null,
         });
+        // 23505 = unique_violation → expected when the same search is
+        // submitted twice in the same 10-minute window. Ignore silently.
+        if (logError && logError.code !== "23505") {
+          console.warn("search log failed", logError);
+        }
       } catch (err) {
-        // Logging failures should never block search.
         console.warn("search log failed", err);
       }
       setOpen(false);
