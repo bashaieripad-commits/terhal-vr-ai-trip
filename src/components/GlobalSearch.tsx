@@ -115,12 +115,21 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
     const q = query.trim().toLowerCase();
     const filterList = (items: string[]) =>
       q ? items.filter((i) => i.toLowerCase().includes(q)) : items;
+
+    // Prepend recently picked suggestions to the personalized group, in
+    // most-recent-first order, with case-insensitive de-duplication against
+    // the rest of the personalized list.
+    const personalizedBase = data.personalized || [];
+    const personalizedLower = new Set(personalizedBase.map((p) => p.toLowerCase()));
+    const recentFirst = recents.filter((r) => !personalizedLower.has(r.toLowerCase()));
+    const mergedPersonalized = [...recentFirst, ...personalizedBase];
+
     return {
-      personalized: filterList(data.personalized || []),
+      personalized: filterList(mergedPersonalized),
       seasonal: filterList(data.seasonal || []),
       trending: filterList(data.trending || []),
     };
-  }, [query, data]);
+  }, [query, data, recents]);
 
   // Flat list used for keyboard navigation in display order.
   const flat = useMemo<FlatSuggestion[]>(() => {
