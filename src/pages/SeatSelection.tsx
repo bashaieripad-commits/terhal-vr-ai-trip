@@ -292,6 +292,14 @@ const SeatSelection = () => {
                       </div>
                     </div>
 
+                    <div className="rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-3 text-xs text-amber-900 dark:text-amber-200 flex gap-2">
+                      <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>
+                        تذكرة الطيران مرتبطة بهويتك الشخصية (الاسم ورقم الهوية)
+                        ولا يمكن نقلها أو إعادة بيعها لأسباب أمنية.
+                      </span>
+                    </div>
+
                     <Button onClick={handleConfirmBooking} className="w-full" size="lg">
                       تأكيد الحجز
                     </Button>
