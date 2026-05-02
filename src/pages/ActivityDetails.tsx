@@ -120,6 +120,8 @@ const ActivityDetails = () => {
                 <p className="text-muted-foreground leading-relaxed">{activity.description}</p>
               </CardContent>
             </Card>
+
+            <ReviewsSection itemId={activity.id} itemType="activity" itemName={activity.title} />
           </motion.div>
 
           <motion.div 
