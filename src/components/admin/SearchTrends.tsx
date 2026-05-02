@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { format, subDays } from "date-fns";
 import { CalendarIcon, Download, Loader2, RefreshCw, Search, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,37 +27,59 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-interface SearchRow {
-  query: string;
-  normalized_query: string | null;
-  city: string | null;
-  language: string | null;
-  created_at: string;
-}
-
 interface PhraseRow {
   normalized: string;
   display: string;
   count: number;
-  cities: Set<string>;
-  languages: Set<string>;
+  cities: string[];
+  languages: string[];
   lastSeen: string;
 }
 
+interface DimRow {
+  key: string;
+  label: string;
+  count: number;
+}
+
+interface TrendsResponse {
+  kpis: { total: number; uniquePhrases: number; truncated: boolean };
+  rows: PhraseRow[] | DimRow[];
+  filters: { cities: string[]; languages: string[] };
+}
+
 const ALL = "__all__";
-const MAX_ROWS = 5000;
+type GroupBy = "phrase" | "day" | "city" | "language";
 
 const SearchTrends = () => {
-  const [rows, setRows] = useState<SearchRow[]>([]);
+  const [phrases, setPhrases] = useState<PhraseRow[]>([]);
+  const [dimensionData, setDimensionData] = useState<DimRow[]>([]);
+  const [kpis, setKpis] = useState<{ total: number; uniquePhrases: number; truncated: boolean }>({
+    total: 0,
+    uniquePhrases: 0,
+    truncated: false,
+  });
+  const [filterOptions, setFilterOptions] = useState<{ cities: string[]; languages: string[] }>({
+    cities: [],
+    languages: [],
+  });
+
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState<Date>(() => subDays(new Date(), 7));
   const [to, setTo] = useState<Date>(() => new Date());
   const [city, setCity] = useState<string>(ALL);
   const [language, setLanguage] = useState<string>(ALL);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [groupBy, setGroupBy] = useState<"phrase" | "day" | "city" | "language">("phrase");
+  const [groupBy, setGroupBy] = useState<GroupBy>("phrase");
 
-  const load = async () => {
+  // Debounce free-text search → server.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const fromIso = new Date(from);
@@ -65,145 +87,48 @@ const SearchTrends = () => {
       const toIso = new Date(to);
       toIso.setHours(23, 59, 59, 999);
 
-      let q = supabase
-        .from("search_queries")
-        .select("query, normalized_query, city, language, created_at")
-        .gte("created_at", fromIso.toISOString())
-        .lte("created_at", toIso.toISOString())
-        .order("created_at", { ascending: false })
-        .limit(MAX_ROWS);
-
-      if (city !== ALL) q = q.eq("city", city);
-      if (language !== ALL) q = q.eq("language", language);
-
-      const { data, error } = await q;
+      const { data, error } = await supabase.functions.invoke<TrendsResponse>("search-trends", {
+        body: {
+          from: fromIso.toISOString(),
+          to: toIso.toISOString(),
+          city: city === ALL ? null : city,
+          language: language === ALL ? null : language,
+          search: search || null,
+          groupBy,
+          limit: groupBy === "phrase" ? 100 : 50,
+        },
+      });
       if (error) throw error;
-      setRows((data ?? []) as SearchRow[]);
+      const resp = data as TrendsResponse;
+      setKpis(resp.kpis);
+      setFilterOptions(resp.filters);
+      if (groupBy === "phrase") {
+        setPhrases(resp.rows as PhraseRow[]);
+        setDimensionData([]);
+      } else {
+        setPhrases([]);
+        setDimensionData(resp.rows as DimRow[]);
+      }
     } catch (e) {
       console.error(e);
       toast.error("فشل تحميل بيانات البحث");
-      setRows([]);
+      setPhrases([]);
+      setDimensionData([]);
+      setKpis({ total: 0, uniquePhrases: 0, truncated: false });
     } finally {
       setLoading(false);
     }
-  };
+  }, [from, to, city, language, search, groupBy]);
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from, to, city, language]);
+  }, [load]);
 
-  // Distinct filter options derived from a small all-time sample.
-  const [filterOptions, setFilterOptions] = useState<{ cities: string[]; languages: string[] }>({
-    cities: [],
-    languages: [],
-  });
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("search_queries")
-        .select("city, language")
-        .order("created_at", { ascending: false })
-        .limit(2000);
-      const cities = new Set<string>();
-      const languages = new Set<string>();
-      for (const r of data ?? []) {
-        if (r.city) cities.add(r.city);
-        if (r.language) languages.add(r.language);
-      }
-      setFilterOptions({
-        cities: Array.from(cities).sort(),
-        languages: Array.from(languages).sort(),
-      });
-    })();
-  }, []);
-
-  const phrases = useMemo<PhraseRow[]>(() => {
-    const map = new Map<string, PhraseRow & { displays: Map<string, number> }>();
-    for (const r of rows) {
-      const norm = (r.normalized_query || r.query || "").trim().toLowerCase();
-      if (!norm) continue;
-      const display = (r.query || "").trim();
-      const existing = map.get(norm);
-      if (existing) {
-        existing.count += 1;
-        if (display) existing.displays.set(display, (existing.displays.get(display) ?? 0) + 1);
-        if (r.city) existing.cities.add(r.city);
-        if (r.language) existing.languages.add(r.language);
-        if (r.created_at > existing.lastSeen) existing.lastSeen = r.created_at;
-      } else {
-        const displays = new Map<string, number>();
-        if (display) displays.set(display, 1);
-        map.set(norm, {
-          normalized: norm,
-          display,
-          count: 1,
-          cities: new Set(r.city ? [r.city] : []),
-          languages: new Set(r.language ? [r.language] : []),
-          lastSeen: r.created_at,
-          displays,
-        });
-      }
-    }
-    const list: PhraseRow[] = Array.from(map.values()).map((p) => {
-      let bestDisplay = p.display;
-      let bestCount = -1;
-      for (const [d, c] of p.displays) {
-        if (c > bestCount) {
-          bestDisplay = d;
-          bestCount = c;
-        }
-      }
-      return {
-        normalized: p.normalized,
-        display: bestDisplay || p.normalized,
-        count: p.count,
-        cities: p.cities,
-        languages: p.languages,
-        lastSeen: p.lastSeen,
-      };
-    });
-
-    const term = search.trim().toLowerCase();
-    const filtered = term
-      ? list.filter(
-          (p) => p.normalized.includes(term) || p.display.toLowerCase().includes(term),
-        )
-      : list;
-    return filtered.sort((a, b) => b.count - a.count).slice(0, 100);
-  }, [rows, search]);
-
-  const dimensionData = useMemo(() => {
-    if (groupBy === "phrase") return [];
-    const map = new Map<string, { key: string; label: string; count: number }>();
-    for (const r of rows) {
-      let key: string;
-      let label: string;
-      if (groupBy === "day") {
-        key = r.created_at.slice(0, 10);
-        label = key;
-      } else if (groupBy === "city") {
-        key = r.city ?? "—";
-        label = r.city ?? "(unknown)";
-      } else {
-        key = r.language ?? "—";
-        label = (r.language ?? "(unknown)").toUpperCase();
-      }
-      const cur = map.get(key);
-      if (cur) cur.count += 1;
-      else map.set(key, { key, label, count: 1 });
-    }
-    const arr = Array.from(map.values());
-    return groupBy === "day"
-      ? arr.sort((a, b) => a.key.localeCompare(b.key))
-      : arr.sort((a, b) => b.count - a.count).slice(0, 20);
-  }, [rows, groupBy]);
-
-  const totalSearches = rows.length;
-  const uniquePhrases = phrases.length;
+  const totalSearches = kpis.total;
+  const uniquePhrases = kpis.uniquePhrases;
+  const truncated = kpis.truncated;
   const maxCount = phrases[0]?.count ?? 1;
   const maxDimCount = dimensionData[0]?.count ?? 1;
-  const truncated = totalSearches >= MAX_ROWS;
 
   return (
     <Card>
@@ -328,8 +253,8 @@ const SearchTrends = () => {
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="filter…"
                 className="pl-8"
               />
@@ -350,7 +275,7 @@ const SearchTrends = () => {
 
         {truncated && (
           <p className="text-xs text-muted-foreground">
-            تم عرض أحدث {MAX_ROWS.toLocaleString()} بحث ضمن النطاق المحدد. ضيِّق الفلاتر لرؤية كل النتائج.
+            تم عرض أهم {phrases.length.toLocaleString()} عبارة من أصل {uniquePhrases.toLocaleString()}. ضيِّق الفلاتر لرؤية المزيد.
           </p>
         )}
 
@@ -408,10 +333,10 @@ const SearchTrends = () => {
                       <CountBar count={p.count} max={maxCount} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <ChipList items={Array.from(p.cities)} />
+                      <ChipList items={p.cities} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <ChipList items={Array.from(p.languages).map((l) => l.toUpperCase())} />
+                      <ChipList items={p.languages.map((l) => l.toUpperCase())} />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                       {format(new Date(p.lastSeen), "yyyy-MM-dd HH:mm")}
@@ -568,8 +493,8 @@ function exportCsv({ phrases, dimensionData, groupBy, from, to, city, language }
         p.display,
         p.normalized,
         p.count,
-        Array.from(p.cities).sort().join("; "),
-        Array.from(p.languages).map((l) => l.toUpperCase()).sort().join("; "),
+        [...p.cities].sort().join("; "),
+        [...p.languages].map((l) => l.toUpperCase()).sort().join("; "),
         p.lastSeen,
       ]),
     ];
