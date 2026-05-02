@@ -458,6 +458,12 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
           )}
           role="listbox"
         >
+          <TypeFilterBar
+            value={searchType}
+            onChange={setSearchType}
+            language={language as "ar" | "en"}
+          />
+
           {loading && flat.length === 0 && (
             <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
