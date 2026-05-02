@@ -30,6 +30,40 @@ interface FlatSuggestion {
   group: "personalized" | "seasonal" | "trending";
 }
 
+// Recently picked suggestions are stored per language so Arabic and English
+// recents don't bleed into each other. Most-recent first, capped at 6.
+const RECENTS_KEY = "tarhal:globalSearch:recents";
+const RECENTS_LIMIT = 6;
+
+const loadRecents = (language: string): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Record<string, string[]>;
+    const list = parsed?.[language];
+    return Array.isArray(list) ? list.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveRecent = (language: string, term: string) => {
+  if (typeof window === "undefined") return;
+  const clean = term.trim();
+  if (!clean) return;
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    const parsed: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    const existing = Array.isArray(parsed[language]) ? parsed[language] : [];
+    const deduped = [clean, ...existing.filter((x) => x.toLowerCase() !== clean.toLowerCase())];
+    parsed[language] = deduped.slice(0, RECENTS_LIMIT);
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(parsed));
+  } catch {
+    // Quota / private mode — ignore.
+  }
+};
+
 export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProps) => {
   const { language } = useLanguage();
   const navigate = useNavigate();
