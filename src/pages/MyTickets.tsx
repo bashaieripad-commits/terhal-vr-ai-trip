@@ -228,6 +228,14 @@ const MyTickets = () => {
   };
 
   const requestListForResale = (booking: Reservation & { ticket?: TicketRow }) => {
+    if (booking.type === "flight") {
+      toast.error(
+        isAr
+          ? "تذاكر الطيران لا يمكن إعادة بيعها لأنها مرتبطة بمعلومات شخصية وأمنية."
+          : "Flight tickets cannot be resold due to personal and security information requirements."
+      );
+      return;
+    }
     setPendingResellBooking(booking);
     setConfirmResellOpen(true);
   };
@@ -277,6 +285,33 @@ const MyTickets = () => {
 
   const handleSubmitResale = async () => {
     if (!selectedTicketForResell || !resellPrice) return;
+
+    // Block flight resale
+    if (selectedBookingForResell?.type === "flight") {
+      toast.error(
+        isAr
+          ? "تذاكر الطيران لا يمكن إعادة بيعها لأنها مرتبطة بالهوية الشخصية."
+          : "Flight tickets cannot be resold due to personal & security info requirements."
+      );
+      return;
+    }
+
+    // Enforce resale price <= original purchase price
+    const originalPrice = Number(selectedBookingForResell?.total_price ?? 0);
+    const requested = Number(resellPrice);
+    if (!Number.isFinite(requested) || requested <= 0) {
+      toast.error(isAr ? "أدخل سعراً صحيحاً" : "Enter a valid price");
+      return;
+    }
+    if (originalPrice > 0 && requested > originalPrice) {
+      toast.error(
+        isAr
+          ? `سعر إعادة البيع يجب ألا يتجاوز السعر الأصلي (${originalPrice} ر.س)`
+          : `Resale price must not exceed the original price (${originalPrice} SAR)`
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { error } = await supabase
@@ -284,7 +319,7 @@ const MyTickets = () => {
         .update({
           is_resellable: true,
           resell_status: "listed",
-          resell_price: Number(resellPrice),
+          resell_price: requested,
         })
         .eq("id", selectedTicketForResell.id);
 
@@ -442,7 +477,35 @@ const MyTickets = () => {
     return { ...res, ticket };
   });
 
-  const filteredBookings = combinedBookings.filter((b) => {
+  // Tickets owned by the user but with no matching reservation (e.g. purchased
+  // from the resale marketplace). Display them as normal bookings — the buyer
+  // must NOT see any trace of the previous owner or resale history.
+  const reservationTicketIds = new Set(
+    combinedBookings.map((b) => b.ticket?.id).filter(Boolean) as string[]
+  );
+  const purchasedTickets = tickets.filter((t) => !reservationTicketIds.has(t.id));
+  const purchasedAsBookings: (Reservation & { ticket?: TicketRow })[] = purchasedTickets.map((t) => ({
+    id: `ticket-${t.id}`,
+    type: "activity",
+    item_name: t.event_name,
+    status: "confirmed",
+    total_price: null,
+    check_in: t.event_date,
+    check_out: null,
+    guests: null,
+    details: null,
+    created_at: t.created_at,
+    ticket: {
+      ...t,
+      is_resellable: false,
+      resell_status: null,
+      resell_price: null,
+    } as TicketRow,
+  }));
+
+  const allBookings = [...combinedBookings, ...purchasedAsBookings];
+
+  const filteredBookings = allBookings.filter((b) => {
     const q = searchQuery.toLowerCase();
     return (
       b.item_name.toLowerCase().includes(q) ||
@@ -604,7 +667,20 @@ const MyTickets = () => {
                                   </Button>
                                 )}
                                 {booking.status === "confirmed" && (
-                                  booking.ticket?.resell_status === "listed" ? (
+                                  booking.type === "flight" ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled
+                                      title={isAr
+                                        ? "تذاكر الطيران لا يمكن إعادة بيعها لأنها مرتبطة بمعلومات شخصية وأمنية."
+                                        : "Flight tickets cannot be resold due to personal and security information requirements."}
+                                      className="rounded-lg text-xs opacity-70 cursor-not-allowed"
+                                    >
+                                      <Plane className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+                                      {isAr ? "غير قابل للبيع" : "Non-transferable"}
+                                    </Button>
+                                  ) : booking.ticket?.resell_status === "listed" ? (
                                     <Button size="sm" variant="outline" className="rounded-lg text-xs border-red-300 text-red-500" onClick={() => requestCancelResale(booking.ticket!.id)}>
                                       <XCircle className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
                                       {isAr ? "إلغاء البيع" : "Cancel"}
@@ -615,6 +691,13 @@ const MyTickets = () => {
                                       {isAr ? "إعادة بيع" : "Resell"}
                                     </Button>
                                   )
+                                )}
+                                {booking.type === "flight" && booking.status === "confirmed" && (
+                                  <p className="basis-full text-[10px] text-muted-foreground mt-1 max-w-[220px] text-right rtl:text-left">
+                                    {isAr
+                                      ? "تذاكر الطيران مرتبطة بهويتك الشخصية ولا يمكن نقلها."
+                                      : "Flight tickets are linked to your identity and cannot be transferred."}
+                                  </p>
                                 )}
                               </div>
                             </div>
