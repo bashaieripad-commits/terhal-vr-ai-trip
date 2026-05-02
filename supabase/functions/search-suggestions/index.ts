@@ -100,25 +100,47 @@ async function getTrendingFromDb(): Promise<string[]> {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // Pull recent rows with both the normalized form (for de-duped counting)
+  // and the original query (for nicer display).
   const { data, error } = await admin
     .from("search_queries")
-    .select("query")
+    .select("query, normalized_query")
     .gte("created_at", sevenDaysAgo)
-    .limit(500);
+    .not("normalized_query", "is", null)
+    .limit(2000);
   if (error || !data) return [];
-  const counts = new Map<string, { display: string; count: number }>();
+
+  // Aggregate by normalized form so "Riyadh hotels", "riyadh   hotels!",
+  // and "the Riyadh hotels" all collapse to a single trending entry.
+  // Pick the most common original spelling as the display label.
+  const groups = new Map<
+    string,
+    { count: number; displays: Map<string, number> }
+  >();
   for (const row of data) {
-    const raw = (row.query || "").trim();
-    if (!raw) continue;
-    const key = raw.toLowerCase();
-    const cur = counts.get(key);
-    if (cur) cur.count += 1;
-    else counts.set(key, { display: raw, count: 1 });
+    const norm = (row.normalized_query || "").trim();
+    if (!norm) continue;
+    const display = (row.query || "").trim();
+    const g = groups.get(norm) ?? { count: 0, displays: new Map() };
+    g.count += 1;
+    if (display) g.displays.set(display, (g.displays.get(display) ?? 0) + 1);
+    groups.set(norm, g);
   }
-  return Array.from(counts.values())
+  return Array.from(groups.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, 6)
-    .map((x) => x.display);
+    .map((g) => {
+      let bestDisplay = "";
+      let bestCount = -1;
+      for (const [d, c] of g.displays) {
+        if (c > bestCount) {
+          bestDisplay = d;
+          bestCount = c;
+        }
+      }
+      return bestDisplay;
+    })
+    .filter((s) => s.length > 0);
 }
 
 async function aiPersonalized(

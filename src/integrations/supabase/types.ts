@@ -311,24 +311,30 @@ export type Database = {
         Row: {
           city: string | null
           created_at: string
+          dedupe_bucket: number | null
           id: string
           language: string | null
+          normalized_query: string | null
           query: string
           user_id: string | null
         }
         Insert: {
           city?: string | null
           created_at?: string
+          dedupe_bucket?: number | null
           id?: string
           language?: string | null
+          normalized_query?: string | null
           query: string
           user_id?: string | null
         }
         Update: {
           city?: string | null
           created_at?: string
+          dedupe_bucket?: number | null
           id?: string
           language?: string | null
+          normalized_query?: string | null
           query?: string
           user_id?: string | null
         }
@@ -569,6 +575,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_search_query: { Args: { q: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
