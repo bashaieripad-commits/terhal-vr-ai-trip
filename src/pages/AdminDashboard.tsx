@@ -15,6 +15,7 @@ import {
   Star,
   FileText,
   BarChart3,
+  TrendingUp,
   LogOut,
 } from "lucide-react";
 import UserManagement from "@/components/admin/UserManagement";
@@ -26,6 +27,7 @@ import PaymentOversight from "@/components/admin/PaymentOversight";
 import ReviewManagement from "@/components/admin/ReviewManagement";
 import ContentManagement from "@/components/admin/ContentManagement";
 import Analytics from "@/components/admin/Analytics";
+import SearchTrends from "@/components/admin/SearchTrends";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -100,7 +102,7 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
+          <TabsList className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">المستخدمين</span>
@@ -136,6 +138,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">التقارير</span>
+            </TabsTrigger>
+            <TabsTrigger value="search-trends" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">اتجاهات البحث</span>
             </TabsTrigger>
           </TabsList>
 
@@ -173,6 +179,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="analytics">
             <Analytics />
+          </TabsContent>
+
+          <TabsContent value="search-trends">
+            <SearchTrends />
           </TabsContent>
         </Tabs>
       </div>
