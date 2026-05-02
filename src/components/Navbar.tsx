@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import {
   Sheet,
   SheetContent,
@@ -30,7 +31,6 @@ export const Navbar = () => {
 
   const navLinks = [
     { to: "/", label: t('nav.home'), icon: Tent },
-    { to: "/search", label: t('nav.search'), icon: Search },
     { to: "/trip-planner", label: t('nav.tripPlanner'), icon: Calendar },
     { to: "/my-tickets", label: language === "ar" ? "تذاكري" : "My Tickets", icon: Ticket },
   ];
