@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Search, Sparkles, Snowflake, TrendingUp, Loader2, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,20 @@ const seasonLabel = (season: string, language: "ar" | "en") => {
   return language === "ar" ? entry.ar : entry.en;
 };
 
+interface FlatSuggestion {
+  text: string;
+  group: "personalized" | "seasonal" | "trending";
+}
+
 export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProps) => {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const { data, loading, fetchSuggestions } = useSearchSuggestions(language as "ar" | "en");
 
   // Close on outside click.
@@ -62,13 +69,37 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
     fetchSuggestions();
   };
 
+  // Build grouped + filtered suggestion lists. While typing, narrow each
+  // group by substring match (case-insensitive) so suggestions react to input.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filterList = (items: string[]) =>
+      q ? items.filter((i) => i.toLowerCase().includes(q)) : items;
+    return {
+      personalized: filterList(data.personalized || []),
+      seasonal: filterList(data.seasonal || []),
+      trending: filterList(data.trending || []),
+    };
+  }, [query, data]);
+
+  // Flat list used for keyboard navigation in display order.
+  const flat = useMemo<FlatSuggestion[]>(() => {
+    return [
+      ...filtered.personalized.map((t) => ({ text: t, group: "personalized" as const })),
+      ...filtered.seasonal.map((t) => ({ text: t, group: "seasonal" as const })),
+      ...filtered.trending.map((t) => ({ text: t, group: "trending" as const })),
+    ];
+  }, [filtered]);
+
+  // Reset highlight when the filtered set changes.
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [query, data]);
+
   const submitQuery = useCallback(
     async (raw: string) => {
       const term = raw.trim();
       if (!term) return;
-      // Fire-and-forget log (do not block navigation; respect RLS).
-      // Server-side de-dup: a unique index suppresses repeats of the same
-      // normalized query from the same user within a 10-minute window.
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const { error: logError } = await supabase.from("search_queries").insert({
@@ -77,8 +108,6 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
           language,
           user_id: sessionData.session?.user.id ?? null,
         });
-        // 23505 = unique_violation → expected when the same search is
-        // submitted twice in the same 10-minute window. Ignore silently.
         if (logError && logError.code !== "23505") {
           console.warn("search log failed", logError);
         }
@@ -93,8 +122,47 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    submitQuery(query);
+    if (activeIndex >= 0 && activeIndex < flat.length) {
+      submitQuery(flat[activeIndex].text);
+    } else {
+      submitQuery(query);
+    }
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      setOpen(true);
+      fetchSuggestions();
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (flat.length === 0) return;
+      setActiveIndex((i) => (i + 1 >= flat.length ? 0 : i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (flat.length === 0) return;
+      setActiveIndex((i) => (i <= 0 ? flat.length - 1 : i - 1));
+    } else if (e.key === "Home") {
+      if (flat.length) {
+        e.preventDefault();
+        setActiveIndex(0);
+      }
+    } else if (e.key === "End") {
+      if (flat.length) {
+        e.preventDefault();
+        setActiveIndex(flat.length - 1);
+      }
+    }
+  };
+
+  // Scroll the active option into view.
+  useEffect(() => {
+    if (activeIndex < 0 || !listRef.current) return;
+    const el = listRef.current.querySelector<HTMLElement>(
+      `[data-suggestion-index="${activeIndex}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
 
   const placeholder = language === "ar"
     ? "ابحث عن وجهة، فندق، رحلة، نشاط..."
@@ -105,6 +173,19 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
     variant === "navbar" ? "max-w-md" : "max-w-2xl mx-auto",
     className,
   );
+
+  const showEmpty =
+    !loading &&
+    flat.length === 0 &&
+    (data.personalized.length || data.seasonal.length || data.trending.length) === 0;
+
+  const showNoMatch =
+    !loading &&
+    flat.length === 0 &&
+    query.trim().length > 0 &&
+    (data.personalized.length || data.seasonal.length || data.trending.length) > 0;
+
+  const activeId = activeIndex >= 0 ? `gs-opt-${activeIndex}` : undefined;
 
   return (
     <div ref={wrapperRef} className={wrapperClass}>
@@ -126,14 +207,23 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
             ref={inputRef}
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              if (!open) setOpen(true);
+            }}
             onFocus={handleFocus}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className={cn(
               "border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0",
               variant === "navbar" ? "h-9 text-sm" : "h-12 text-base",
             )}
             aria-label={placeholder}
+            role="combobox"
+            aria-expanded={open}
+            aria-autocomplete="list"
+            aria-controls="gs-listbox"
+            aria-activedescendant={activeId}
           />
           <Button
             type="submit"
@@ -148,13 +238,15 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
 
       {open && (
         <div
+          ref={listRef}
+          id="gs-listbox"
           className={cn(
-            "absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-border/60 bg-popover shadow-[var(--shadow-lg)] overflow-hidden",
+            "absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-border/60 bg-popover shadow-[var(--shadow-lg)] overflow-hidden max-h-[70vh] overflow-y-auto",
             "animate-in fade-in-0 slide-in-from-top-1",
           )}
           role="listbox"
         >
-          {loading && data.personalized.length === 0 && (
+          {loading && flat.length === 0 && (
             <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               {language === "ar" ? "جاري تحضير الاقتراحات..." : "Preparing suggestions…"}
@@ -173,30 +265,44 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
           <SuggestionGroup
             icon={<Sparkles className="h-4 w-4 text-terracotta" />}
             label={language === "ar" ? "مخصصة لك" : "For you"}
-            items={data.personalized}
+            items={filtered.personalized}
+            offset={0}
+            activeIndex={activeIndex}
             onPick={submitQuery}
+            onHover={setActiveIndex}
           />
           <SuggestionGroup
             icon={<Snowflake className="h-4 w-4 text-sandy-gold" />}
             label={seasonLabel(data.season, language as "ar" | "en")}
-            items={data.seasonal}
+            items={filtered.seasonal}
+            offset={filtered.personalized.length}
+            activeIndex={activeIndex}
             onPick={submitQuery}
+            onHover={setActiveIndex}
           />
           <SuggestionGroup
             icon={<TrendingUp className="h-4 w-4 text-primary" />}
             label={language === "ar" ? "الأكثر بحثاً" : "Trending now"}
-            items={data.trending}
+            items={filtered.trending}
+            offset={filtered.personalized.length + filtered.seasonal.length}
+            activeIndex={activeIndex}
             onPick={submitQuery}
+            onHover={setActiveIndex}
           />
 
-          {!loading &&
-            data.personalized.length === 0 &&
-            data.seasonal.length === 0 &&
-            data.trending.length === 0 && (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                {language === "ar" ? "ابدأ الكتابة للبحث" : "Start typing to search"}
-              </div>
-            )}
+          {showNoMatch && (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              {language === "ar"
+                ? `اضغط بحث للبحث عن "${query.trim()}"`
+                : `Press search to look up "${query.trim()}"`}
+            </div>
+          )}
+
+          {showEmpty && (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              {language === "ar" ? "ابدأ الكتابة للبحث" : "Start typing to search"}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -207,10 +313,21 @@ interface SuggestionGroupProps {
   icon: React.ReactNode;
   label: string;
   items: string[];
+  offset: number;
+  activeIndex: number;
   onPick: (item: string) => void;
+  onHover: (index: number) => void;
 }
 
-const SuggestionGroup = ({ icon, label, items, onPick }: SuggestionGroupProps) => {
+const SuggestionGroup = ({
+  icon,
+  label,
+  items,
+  offset,
+  activeIndex,
+  onPick,
+  onHover,
+}: SuggestionGroupProps) => {
   if (!items || items.length === 0) return null;
   return (
     <div className="px-4 py-3 border-t border-border/40 first:border-t-0">
@@ -219,16 +336,34 @@ const SuggestionGroup = ({ icon, label, items, onPick }: SuggestionGroupProps) =
         {label}
       </div>
       <div className="flex flex-wrap gap-2">
-        {items.map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => onPick(item)}
-            className="px-3 py-1.5 text-sm rounded-full bg-muted/60 hover:bg-primary hover:text-primary-foreground transition-colors border border-border/40"
-          >
-            {item}
-          </button>
-        ))}
+        {items.map((item, i) => {
+          const idx = offset + i;
+          const isActive = idx === activeIndex;
+          return (
+            <button
+              key={item}
+              type="button"
+              id={`gs-opt-${idx}`}
+              data-suggestion-index={idx}
+              role="option"
+              aria-selected={isActive}
+              onMouseDown={(e) => {
+                // Prevent input blur before click fires.
+                e.preventDefault();
+                onPick(item);
+              }}
+              onMouseEnter={() => onHover(idx)}
+              className={cn(
+                "px-3 py-1.5 text-sm rounded-full border transition-colors",
+                isActive
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted/60 hover:bg-primary hover:text-primary-foreground border-border/40",
+              )}
+            >
+              {item}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
