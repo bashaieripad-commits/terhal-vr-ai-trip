@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, subDays } from "date-fns";
-import { CalendarIcon, Loader2, RefreshCw, Search, TrendingUp } from "lucide-react";
+import { CalendarIcon, Download, Loader2, RefreshCw, Search, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -218,10 +218,21 @@ const SearchTrends = () => {
               أهم العبارات المُبحوثة حسب اليوم والمدينة واللغة
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
-            تحديث
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportCsv({ phrases, dimensionData, groupBy, from, to, city, language })}
+              disabled={loading || (groupBy === "phrase" ? phrases.length === 0 : dimensionData.length === 0)}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              تصدير CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+              تحديث
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -498,5 +509,81 @@ const EmptyState = () => (
     لا توجد بيانات بحث ضمن النطاق المحدد.
   </div>
 );
+
+function csvEscape(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const s = String(value);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadCsv(filename: string, rows: (string | number)[][]) {
+  const body = rows.map((r) => r.map(csvEscape).join(",")).join("\r\n");
+  // BOM so Excel renders Arabic + UTF-8 correctly.
+  const blob = new Blob(["\uFEFF" + body], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+interface ExportArgs {
+  phrases: PhraseRow[];
+  dimensionData: { key: string; label: string; count: number }[];
+  groupBy: "phrase" | "day" | "city" | "language";
+  from: Date;
+  to: Date;
+  city: string;
+  language: string;
+}
+
+function exportCsv({ phrases, dimensionData, groupBy, from, to, city, language }: ExportArgs) {
+  const fromStr = format(from, "yyyy-MM-dd");
+  const toStr = format(to, "yyyy-MM-dd");
+  const cityPart = city === ALL ? "all-cities" : city.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+  const langPart = language === ALL ? "all-langs" : language.toLowerCase();
+  const filename = `search-trends_${groupBy}_${fromStr}_to_${toStr}_${cityPart}_${langPart}.csv`;
+
+  // Metadata header rows so the CSV is self-describing.
+  const meta: (string | number)[][] = [
+    ["# Search Trends Export"],
+    ["# Generated", new Date().toISOString()],
+    ["# Date range", `${fromStr} → ${toStr}`],
+    ["# City filter", city === ALL ? "All" : city],
+    ["# Language filter", language === ALL ? "All" : language.toUpperCase()],
+    ["# Group by", groupBy],
+    [],
+  ];
+
+  let dataRows: (string | number)[][];
+  if (groupBy === "phrase") {
+    dataRows = [
+      ["Rank", "Phrase", "Normalized", "Count", "Cities", "Languages", "Last seen (UTC)"],
+      ...phrases.map((p, i) => [
+        i + 1,
+        p.display,
+        p.normalized,
+        p.count,
+        Array.from(p.cities).sort().join("; "),
+        Array.from(p.languages).map((l) => l.toUpperCase()).sort().join("; "),
+        p.lastSeen,
+      ]),
+    ];
+  } else {
+    const header =
+      groupBy === "day" ? "Day" : groupBy === "city" ? "City" : "Language";
+    dataRows = [
+      [header, "Searches"],
+      ...dimensionData.map((d) => [d.label, d.count]),
+    ];
+  }
+
+  downloadCsv(filename, [...meta, ...dataRows]);
+  toast.success(`تم تصدير ${dataRows.length - 1} صف`);
+}
 
 export default SearchTrends;
