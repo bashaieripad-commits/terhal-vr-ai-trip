@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { useNavigate } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { FeaturedSection } from "@/components/FeaturedSection";
 
 import { VR360HotelsSection } from "@/components/vr360-hotels/VR360HotelsSection";
@@ -155,6 +156,14 @@ const Index = () => {
                 {t('hero.subtitle')}
               </span>
             </motion.h1>
+
+            <motion.div
+              className="pt-6"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}>
+              <GlobalSearch variant="hero" />
+            </motion.div>
 
             <motion.div
               className="flex items-center justify-center gap-4 pt-4"
