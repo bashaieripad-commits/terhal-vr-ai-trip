@@ -290,12 +290,20 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
         console.warn("search log failed", err);
       }
       // Persist this pick so it appears at the top of "For you" next time.
-      saveRecent(language, term);
-      setRecents(loadRecents(language));
+      // Signed-in users get cross-device sync via the remote table; others
+      // fall back to localStorage only.
+      if (userId) {
+        await saveRecentRemote(userId, language, term);
+        const remote = await loadRecentsRemote(userId, language);
+        setRecents(remote);
+      } else {
+        saveRecent(language, term);
+        setRecents(loadRecents(language));
+      }
       setOpen(false);
       navigate(`/search?type=all&q=${encodeURIComponent(term)}`);
     },
-    [data.city, language, navigate],
+    [data.city, language, navigate, userId],
   );
 
   const handleSubmit = (e: React.FormEvent) => {
