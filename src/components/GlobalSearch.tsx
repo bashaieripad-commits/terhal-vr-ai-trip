@@ -64,6 +64,76 @@ const saveRecent = (language: string, term: string) => {
   }
 };
 
+// --- Remote (cross-device) sync helpers --------------------------------------
+// When the user is signed in we mirror recents into `user_recent_searches`
+// so they sync across devices. Local storage stays as the offline fallback
+// and as a buffer that gets merged into the remote store on sign-in.
+
+const loadRecentsRemote = async (
+  userId: string,
+  language: string,
+): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from("user_recent_searches")
+    .select("term, updated_at")
+    .eq("user_id", userId)
+    .eq("language", language)
+    .order("updated_at", { ascending: false })
+    .limit(RECENTS_LIMIT);
+  if (error) {
+    console.warn("recents load (remote) failed", error);
+    return [];
+  }
+  return (data ?? []).map((r) => r.term as string);
+};
+
+const saveRecentRemote = async (
+  userId: string,
+  language: string,
+  term: string,
+): Promise<void> => {
+  const clean = term.trim();
+  if (!clean) return;
+  // Upsert by (user_id, language, term_lower) so reusing a term bumps it
+  // to the top instead of creating duplicates. The DB trigger trims the
+  // list to RECENTS_LIMIT per (user, language).
+  const { error } = await supabase
+    .from("user_recent_searches")
+    .upsert(
+      {
+        user_id: userId,
+        language,
+        term: clean.slice(0, 200),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,language,term_lower" },
+    );
+  if (error) console.warn("recents save (remote) failed", error);
+};
+
+const clearRecentsRemote = async (
+  userId: string,
+  language: string,
+): Promise<void> => {
+  const { error } = await supabase
+    .from("user_recent_searches")
+    .delete()
+    .eq("user_id", userId)
+    .eq("language", language);
+  if (error) console.warn("recents clear (remote) failed", error);
+};
+
+// Merge any local recents into the remote store on sign-in. Oldest first
+// so the most recent local pick ends up with the freshest updated_at.
+const mergeLocalIntoRemote = async (userId: string, language: string) => {
+  const local = loadRecents(language);
+  if (local.length === 0) return;
+  for (const term of [...local].reverse()) {
+    await saveRecentRemote(userId, language, term);
+  }
+};
+
+
 const clearRecents = (language: string) => {
   if (typeof window === "undefined") return;
   try {
