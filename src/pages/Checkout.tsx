@@ -111,6 +111,15 @@ const Checkout = () => {
     e.preventDefault();
     
     if (items.length === 0) return;
+
+    if (hasFlights) {
+      syncPassengers();
+      const err = validateFlightForms();
+      if (err) {
+        toast.error(err);
+        return;
+      }
+    }
     
     setIsProcessing(true);
     const ref = generateReferenceNumber();
