@@ -188,12 +188,18 @@ const HotelDetails = () => {
                   ))}
                 </div>
 
-                {nights > 0 && (
+                {nights > 0 && stay && (
                   <div className="p-4 bg-primary/5 rounded-2xl space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>{hotel.price} {language === "ar" ? "ر.س" : "SAR"} × {nights} {language === "ar" ? "ليالي" : "nights"}</span>
-                      <span>{totalPrice} {language === "ar" ? "ر.س" : "SAR"}</span>
+                      <span>{language === "ar" ? "متوسط السعر/ليلة" : "Avg / night"}</span>
+                      <span>{avgNightly} {language === "ar" ? "ر.س" : "SAR"}</span>
                     </div>
+                    {stay.hasSurge && (
+                      <div className="flex items-start gap-2 text-xs p-2 rounded-lg bg-sandy-gold/15 text-foreground/80">
+                        <Sparkles className="h-3.5 w-3.5 mt-0.5 text-sandy-gold" />
+                        <span>{language === "ar" ? `الأسعار أعلى بسبب عطلة نهاية الأسبوع/الموسم (+${stay.surge} ر.س)` : `Prices are higher due to weekend/seasonal demand (+${stay.surge} SAR)`}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-bold text-lg pt-2 border-t border-primary/10">
                       <span>{language === "ar" ? "الإجمالي" : "Total"}</span>
                       <span className="text-primary">{totalPrice} {language === "ar" ? "ر.س" : "SAR"}</span>
