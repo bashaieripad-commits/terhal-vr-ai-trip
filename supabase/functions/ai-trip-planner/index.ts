@@ -115,10 +115,10 @@ Ensure all prices are in SAR and details match the requested language.`;
       ? `المستخدم موجود في: ${userLocation}
 
 الفنادق المتاحة:
-${JSON.stringify(hotels, null, 2)}
+${JSON.stringify(hotelsRanked, null, 2)}
 
 الفعاليات المتاحة:
-${JSON.stringify(activities, null, 2)}
+${JSON.stringify(activitiesRanked, null, 2)}
 
 الرحلات المتاحة:
 ${JSON.stringify(flights, null, 2)}
@@ -127,10 +127,10 @@ ${JSON.stringify(flights, null, 2)}
       : `User is located in: ${userLocation}
 
 Available hotels:
-${JSON.stringify(hotels, null, 2)}
+${JSON.stringify(hotelsRanked, null, 2)}
 
 Available activities:
-${JSON.stringify(activities, null, 2)}
+${JSON.stringify(activitiesRanked, null, 2)}
 
 Available flights:
 ${JSON.stringify(flights, null, 2)}
