@@ -253,8 +253,8 @@ const SearchTrends = () => {
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="filter…"
                 className="pl-8"
               />
@@ -333,10 +333,10 @@ const SearchTrends = () => {
                       <CountBar count={p.count} max={maxCount} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <ChipList items={Array.from(p.cities)} />
+                      <ChipList items={p.cities} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <ChipList items={Array.from(p.languages).map((l) => l.toUpperCase())} />
+                      <ChipList items={p.languages.map((l) => l.toUpperCase())} />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                       {format(new Date(p.lastSeen), "yyyy-MM-dd HH:mm")}
@@ -493,8 +493,8 @@ function exportCsv({ phrases, dimensionData, groupBy, from, to, city, language }
         p.display,
         p.normalized,
         p.count,
-        Array.from(p.cities).sort().join("; "),
-        Array.from(p.languages).map((l) => l.toUpperCase()).sort().join("; "),
+        [...p.cities].sort().join("; "),
+        [...p.languages].map((l) => l.toUpperCase()).sort().join("; "),
         p.lastSeen,
       ]),
     ];
