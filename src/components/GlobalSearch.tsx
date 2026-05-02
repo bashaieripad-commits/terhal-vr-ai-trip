@@ -163,6 +163,9 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
       } catch (err) {
         console.warn("search log failed", err);
       }
+      // Persist this pick so it appears at the top of "For you" next time.
+      saveRecent(language, term);
+      setRecents(loadRecents(language));
       setOpen(false);
       navigate(`/search?type=all&q=${encodeURIComponent(term)}`);
     },
