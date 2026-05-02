@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, subDays } from "date-fns";
-import { CalendarIcon, Loader2, RefreshCw, Search, TrendingUp } from "lucide-react";
+import { CalendarIcon, Download, Loader2, RefreshCw, Search, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -218,10 +218,21 @@ const SearchTrends = () => {
               أهم العبارات المُبحوثة حسب اليوم والمدينة واللغة
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
-            تحديث
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportCsv({ phrases, dimensionData, groupBy, from, to, city, language })}
+              disabled={loading || (groupBy === "phrase" ? phrases.length === 0 : dimensionData.length === 0)}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              تصدير CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+              تحديث
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
