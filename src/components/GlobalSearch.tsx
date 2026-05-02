@@ -402,6 +402,7 @@ interface SuggestionGroupProps {
   activeIndex: number;
   onPick: (item: string) => void;
   onHover: (index: number) => void;
+  action?: React.ReactNode;
 }
 
 const SuggestionGroup = ({
@@ -412,13 +413,15 @@ const SuggestionGroup = ({
   activeIndex,
   onPick,
   onHover,
+  action,
 }: SuggestionGroupProps) => {
   if (!items || items.length === 0) return null;
   return (
     <div className="px-4 py-3 border-t border-border/40 first:border-t-0">
       <div className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {icon}
-        {label}
+        <span>{label}</span>
+        {action}
       </div>
       <div className="flex flex-wrap gap-2">
         {items.map((item, i) => {
