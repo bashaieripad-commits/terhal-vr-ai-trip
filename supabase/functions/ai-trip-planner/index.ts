@@ -94,7 +94,7 @@ serve(async (req) => {
 - hotel (object: {id, title, price, details})
 - activities (array of objects: [{id, title, price, details}])
 
-تأكد من أن جميع الأسعار بالريال السعودي وأن التفاصيل باللغة العربية.`
+فضّل الفنادق والفعاليات ذات avg_rating الأعلى عند توفّر مراجعات. تأكد من أن جميع الأسعار بالريال السعودي وأن التفاصيل باللغة العربية.`
       : `You are a smart travel planner specializing in Saudi Arabia tourism. Your task is to suggest a complete travel package based on the user's location.
 
 Analyze the available data and suggest:
@@ -109,7 +109,7 @@ Respond in JSON format only with the following keys:
 - hotel (object: {id, title, price, details})
 - activities (array of objects: [{id, title, price, details}])
 
-Ensure all prices are in SAR and details match the requested language.`;
+Prefer hotels and activities with higher avg_rating when reviews are available. Ensure all prices are in SAR and details match the requested language.`;
 
     const userPrompt = language === 'ar'
       ? `المستخدم موجود في: ${userLocation}
