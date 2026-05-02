@@ -275,7 +275,7 @@ const SearchTrends = () => {
 
         {truncated && (
           <p className="text-xs text-muted-foreground">
-            تم عرض أحدث {MAX_ROWS.toLocaleString()} بحث ضمن النطاق المحدد. ضيِّق الفلاتر لرؤية كل النتائج.
+            تم عرض أهم {phrases.length.toLocaleString()} عبارة من أصل {uniquePhrases.toLocaleString()}. ضيِّق الفلاتر لرؤية المزيد.
           </p>
         )}
 
