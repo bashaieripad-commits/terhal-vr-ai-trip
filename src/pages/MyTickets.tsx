@@ -228,6 +228,14 @@ const MyTickets = () => {
   };
 
   const requestListForResale = (booking: Reservation & { ticket?: TicketRow }) => {
+    if (booking.type === "flight") {
+      toast.error(
+        isAr
+          ? "تذاكر الطيران لا يمكن إعادة بيعها لأنها مرتبطة بمعلومات شخصية وأمنية."
+          : "Flight tickets cannot be resold due to personal and security information requirements."
+      );
+      return;
+    }
     setPendingResellBooking(booking);
     setConfirmResellOpen(true);
   };
