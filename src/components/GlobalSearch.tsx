@@ -160,11 +160,52 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
   const listRef = useRef<HTMLDivElement>(null);
   const { data, loading, fetchSuggestions } = useSearchSuggestions(language as "ar" | "en");
   const [recents, setRecents] = useState<string[]>(() => loadRecents(language));
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Reload recents when language changes so AR/EN don't bleed into each other.
+  // Track auth state so recents can sync across devices for signed-in users.
+  // We listen first, then read the existing session, per Supabase guidance.
   useEffect(() => {
-    setRecents(loadRecents(language));
-  }, [language]);
+    let active = true;
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      setUserId(session?.user?.id ?? null);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setUserId(data.session?.user?.id ?? null);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Reload recents when the language or auth state changes. For signed-in
+  // users we merge any local picks made while signed-out into the remote
+  // store, then read the canonical list from the server.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (userId) {
+        try {
+          await mergeLocalIntoRemote(userId, language);
+          // After merging, drop the local copy for this language so the
+          // remote store is the single source of truth across devices.
+          clearRecents(language);
+          const remote = await loadRecentsRemote(userId, language);
+          if (!cancelled) setRecents(remote);
+        } catch (err) {
+          console.warn("recents sync failed", err);
+          if (!cancelled) setRecents(loadRecents(language));
+        }
+      } else {
+        if (!cancelled) setRecents(loadRecents(language));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [language, userId]);
 
   // Close on outside click.
   useEffect(() => {
