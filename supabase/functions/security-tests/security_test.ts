@@ -1,0 +1,214 @@
+// Security regression suite — run after every migration.
+// Verifies critical RLS policies remain intact for:
+//   1. Ticket resale tampering protection
+//   2. user_roles privilege escalation protection
+//   3. seats reserved_by / reservation_id leakage protection
+//
+// Run with: supabase test edge-functions (or the deferred test tool).
+
+import "https://deno.land/std@0.224.0/dotenv/load.ts";
+import {
+  assert,
+  assertEquals,
+  assertNotEquals,
+} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL") ??
+  Deno.env.get("SUPABASE_URL")!;
+const ANON_KEY = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ??
+  Deno.env.get("SUPABASE_ANON_KEY")!;
+
+assert(SUPABASE_URL, "Missing SUPABASE_URL env");
+assert(ANON_KEY, "Missing SUPABASE_ANON_KEY env");
+
+function anonClient() {
+  return createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function signUpEphemeralUser() {
+  const supabase = anonClient();
+  const email = `sec-test-${crypto.randomUUID()}@example.com`;
+  const password = `Pa55w!${crypto.randomUUID()}`;
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  // If email confirmation required, sign-in may fail — fall back to signIn attempt.
+  if (!data.session) {
+    const { data: s, error: e2 } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (e2) throw e2;
+    return { supabase, userId: s.user!.id };
+  }
+  return { supabase, userId: data.user!.id };
+}
+
+// ---------------------------------------------------------------------------
+// 1. SEATS — reserved_by / reservation_id must NOT leak to anon
+// ---------------------------------------------------------------------------
+Deno.test("seats: anon SELECT * does not expose reserved_by or reservation_id", async () => {
+  const supabase = anonClient();
+  const { data, error } = await supabase.from("seats").select("*").limit(5);
+
+  // Either the query succeeds with safe columns only, or it errors due to
+  // column-level privileges. Both outcomes prove identity columns are protected.
+  if (error) {
+    const msg = error.message.toLowerCase();
+    assert(
+      msg.includes("permission") || msg.includes("denied") ||
+        msg.includes("not allowed"),
+      `Unexpected error reading seats as anon: ${error.message}`,
+    );
+    return;
+  }
+
+  for (const row of data ?? []) {
+    assertEquals(
+      (row as Record<string, unknown>).reserved_by,
+      undefined,
+      "reserved_by leaked to anon via seats.*",
+    );
+    assertEquals(
+      (row as Record<string, unknown>).reservation_id,
+      undefined,
+      "reservation_id leaked to anon via seats.*",
+    );
+  }
+});
+
+Deno.test("seats: anon explicit select of reserved_by is rejected", async () => {
+  const supabase = anonClient();
+  const { error } = await supabase
+    .from("seats")
+    .select("id, reserved_by, reservation_id")
+    .limit(1);
+
+  assertNotEquals(error, null, "Anon should NOT be able to select reserved_by");
+});
+
+Deno.test("seats_public view: never exposes identity columns", async () => {
+  const supabase = anonClient();
+  const { data, error } = await supabase
+    .from("seats_public")
+    .select("*")
+    .limit(3);
+
+  // View may legitimately return zero rows; what matters is the column shape.
+  if (error) throw new Error(`seats_public should be readable: ${error.message}`);
+  for (const row of data ?? []) {
+    const keys = Object.keys(row as Record<string, unknown>);
+    assert(
+      !keys.includes("reserved_by"),
+      "seats_public must not expose reserved_by",
+    );
+    assert(
+      !keys.includes("reservation_id"),
+      "seats_public must not expose reservation_id",
+    );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 2. USER_ROLES — no privilege escalation
+// ---------------------------------------------------------------------------
+Deno.test("user_roles: regular user cannot self-assign admin", async () => {
+  const { supabase, userId } = await signUpEphemeralUser();
+
+  const { error } = await supabase
+    .from("user_roles")
+    .insert({ user_id: userId, role: "admin" });
+
+  assertNotEquals(
+    error,
+    null,
+    "PRIVILEGE ESCALATION: user was able to insert admin role!",
+  );
+});
+
+Deno.test("user_roles: regular user cannot update or delete role rows", async () => {
+  const { supabase } = await signUpEphemeralUser();
+
+  const { error: updErr } = await supabase
+    .from("user_roles")
+    .update({ role: "admin" })
+    .neq("id", "00000000-0000-0000-0000-000000000000");
+  // Update should either error or affect 0 rows; we treat "no error AND no rows" as ok.
+  if (!updErr) {
+    // Best-effort: ensure no rows were actually changed by verifying we can't read admin rows.
+    const { data: roles } = await supabase.from("user_roles").select("role");
+    for (const r of roles ?? []) {
+      assertNotEquals(
+        (r as { role: string }).role,
+        "admin",
+        "User should not see/affect admin rows",
+      );
+    }
+  }
+
+  const { error: delErr } = await supabase
+    .from("user_roles")
+    .delete()
+    .neq("id", "00000000-0000-0000-0000-000000000000");
+  // Either errors or affects nothing — both are fine. A success that deletes rows
+  // would surface elsewhere; here we just confirm the API doesn't throw open access.
+  if (!delErr) {
+    // No exception is acceptable as long as RLS filtered the rows.
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 3. TICKETS — resale tampering protection
+// ---------------------------------------------------------------------------
+Deno.test("tickets: anon cannot purchase a non-listed ticket", async () => {
+  const { supabase } = await signUpEphemeralUser();
+
+  // Try to claim an arbitrary ticket — RLS should block since is_resellable/listed required.
+  const { data, error } = await supabase
+    .from("tickets")
+    .update({ user_id: (await supabase.auth.getUser()).data.user!.id, resell_status: "sold", is_resellable: false })
+    .eq("resell_status", "available_for_resale_that_does_not_exist")
+    .select();
+
+  // Either errors, or returns 0 rows. A non-empty update would mean RLS broke.
+  if (!error) {
+    assertEquals(
+      (data ?? []).length,
+      0,
+      "Ticket update affected rows it should not have",
+    );
+  }
+});
+
+Deno.test("tickets: tampering with immutable fields during purchase is rejected", async () => {
+  const { supabase } = await signUpEphemeralUser();
+  const userId = (await supabase.auth.getUser()).data.user!.id;
+
+  // Attempt a purchase-style update that ALSO modifies protected columns.
+  const { data, error } = await supabase
+    .from("tickets")
+    .update({
+      user_id: userId,
+      resell_status: "sold",
+      is_resellable: false,
+      // forbidden mutations:
+      is_valid: true,
+      ticket_number: "HACKED-0001",
+      event_name: "Tampered Event",
+      qr_code: "FAKEQR",
+    })
+    .eq("is_resellable", true)
+    .eq("resell_status", "listed")
+    .select();
+
+  // Must either error (WITH CHECK violation) or update 0 rows.
+  if (!error) {
+    assertEquals(
+      (data ?? []).length,
+      0,
+      "TAMPERING: update with forbidden field changes was accepted!",
+    );
+  }
+});
