@@ -612,3 +612,61 @@ const SuggestionGroup = ({
     </div>
   );
 };
+
+// Quick filter chips rendered at the top of the suggestions panel.
+// Defined outside the parent component so it doesn't remount on every keystroke.
+interface TypeFilterBarProps {
+  value: SearchType;
+  onChange: (next: SearchType) => void;
+  language: "ar" | "en";
+}
+
+const TYPE_OPTIONS: Array<{
+  key: SearchType;
+  icon: React.ComponentType<{ className?: string }>;
+  ar: string;
+  en: string;
+}> = [
+  { key: "all", icon: LayoutGrid, ar: "الكل", en: "All" },
+  { key: "hotels", icon: Hotel, ar: "فنادق", en: "Hotels" },
+  { key: "flights", icon: Plane, ar: "طيران", en: "Flights" },
+  { key: "events", icon: CalendarHeart, ar: "فعاليات", en: "Events" },
+  { key: "activities", icon: Compass, ar: "أنشطة", en: "Activities" },
+];
+
+const TypeFilterBar = ({ value, onChange, language }: TypeFilterBarProps) => {
+  return (
+    <div
+      className="flex items-center gap-1.5 overflow-x-auto px-3 pt-3 pb-2 border-b border-border/40 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      role="tablist"
+      aria-label={language === "ar" ? "تصفية حسب النوع" : "Filter by type"}
+    >
+      {TYPE_OPTIONS.map((opt) => {
+        const Icon = opt.icon;
+        const active = value === opt.key;
+        return (
+          <button
+            key={opt.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onMouseDown={(e) => {
+              // Keep input focused so the panel stays open.
+              e.preventDefault();
+              onChange(opt.key);
+            }}
+            className={cn(
+              "inline-flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+              active
+                ? "bg-primary text-primary-foreground border-primary shadow-sm scale-[1.02]"
+                : "bg-muted/50 text-muted-foreground border-border/40 hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            <span>{language === "ar" ? opt.ar : opt.en}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
