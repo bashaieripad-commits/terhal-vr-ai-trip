@@ -18,6 +18,7 @@ const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL") ??
   Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ??
   Deno.env.get("SUPABASE_ANON_KEY")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 assert(SUPABASE_URL, "Missing SUPABASE_URL env");
 assert(ANON_KEY, "Missing SUPABASE_ANON_KEY env");
@@ -28,22 +29,49 @@ function anonClient() {
   });
 }
 
-async function signUpEphemeralUser() {
-  const supabase = anonClient();
+// Track created users so we can clean them up after each test.
+const createdUserIds: string[] = [];
+
+async function createConfirmedUser() {
+  if (!SERVICE_KEY) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is required to mint confirmed test users",
+    );
+  }
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const email = `sec-test-${crypto.randomUUID()}@example.com`;
   const password = `Pa55w!${crypto.randomUUID()}`;
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
   if (error) throw error;
-  // If email confirmation required, sign-in may fail — fall back to signIn attempt.
-  if (!data.session) {
-    const { data: s, error: e2 } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (e2) throw e2;
-    return { supabase, userId: s.user!.id };
+  const userId = data.user!.id;
+  createdUserIds.push(userId);
+
+  const supabase = anonClient();
+  const { error: signInErr } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (signInErr) throw signInErr;
+  return { supabase, userId, admin };
+}
+
+async function cleanupUsers() {
+  if (!SERVICE_KEY || createdUserIds.length === 0) return;
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  while (createdUserIds.length) {
+    const id = createdUserIds.pop()!;
+    try {
+      await admin.auth.admin.deleteUser(id);
+    } catch (_) { /* ignore */ }
   }
-  return { supabase, userId: data.user!.id };
 }
 
 // ---------------------------------------------------------------------------
