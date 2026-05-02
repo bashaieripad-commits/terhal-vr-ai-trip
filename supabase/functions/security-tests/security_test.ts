@@ -240,3 +240,8 @@ Deno.test("tickets: tampering with immutable fields during purchase is rejected"
     );
   }
 });
+
+// Cleanup any users we created (last test).
+Deno.test("cleanup: remove ephemeral test users", async () => {
+  await cleanupUsers();
+});
