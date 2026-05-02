@@ -30,6 +30,40 @@ interface FlatSuggestion {
   group: "personalized" | "seasonal" | "trending";
 }
 
+// Recently picked suggestions are stored per language so Arabic and English
+// recents don't bleed into each other. Most-recent first, capped at 6.
+const RECENTS_KEY = "tarhal:globalSearch:recents";
+const RECENTS_LIMIT = 6;
+
+const loadRecents = (language: string): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Record<string, string[]>;
+    const list = parsed?.[language];
+    return Array.isArray(list) ? list.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveRecent = (language: string, term: string) => {
+  if (typeof window === "undefined") return;
+  const clean = term.trim();
+  if (!clean) return;
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    const parsed: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    const existing = Array.isArray(parsed[language]) ? parsed[language] : [];
+    const deduped = [clean, ...existing.filter((x) => x.toLowerCase() !== clean.toLowerCase())];
+    parsed[language] = deduped.slice(0, RECENTS_LIMIT);
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(parsed));
+  } catch {
+    // Quota / private mode — ignore.
+  }
+};
+
 export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProps) => {
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -40,6 +74,12 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { data, loading, fetchSuggestions } = useSearchSuggestions(language as "ar" | "en");
+  const [recents, setRecents] = useState<string[]>(() => loadRecents(language));
+
+  // Reload recents when language changes so AR/EN don't bleed into each other.
+  useEffect(() => {
+    setRecents(loadRecents(language));
+  }, [language]);
 
   // Close on outside click.
   useEffect(() => {
@@ -75,12 +115,21 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
     const q = query.trim().toLowerCase();
     const filterList = (items: string[]) =>
       q ? items.filter((i) => i.toLowerCase().includes(q)) : items;
+
+    // Prepend recently picked suggestions to the personalized group, in
+    // most-recent-first order, with case-insensitive de-duplication against
+    // the rest of the personalized list.
+    const personalizedBase = data.personalized || [];
+    const personalizedLower = new Set(personalizedBase.map((p) => p.toLowerCase()));
+    const recentFirst = recents.filter((r) => !personalizedLower.has(r.toLowerCase()));
+    const mergedPersonalized = [...recentFirst, ...personalizedBase];
+
     return {
-      personalized: filterList(data.personalized || []),
+      personalized: filterList(mergedPersonalized),
       seasonal: filterList(data.seasonal || []),
       trending: filterList(data.trending || []),
     };
-  }, [query, data]);
+  }, [query, data, recents]);
 
   // Flat list used for keyboard navigation in display order.
   const flat = useMemo<FlatSuggestion[]>(() => {
@@ -114,6 +163,9 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
       } catch (err) {
         console.warn("search log failed", err);
       }
+      // Persist this pick so it appears at the top of "For you" next time.
+      saveRecent(language, term);
+      setRecents(loadRecents(language));
       setOpen(false);
       navigate(`/search?type=all&q=${encodeURIComponent(term)}`);
     },
