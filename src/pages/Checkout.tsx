@@ -34,6 +34,79 @@ const Checkout = () => {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [bookedItems, setBookedItems] = useState<typeof items>([]);
 
+  const flightItems = items.filter((i) => i.type === "flight");
+  const hasFlights = flightItems.length > 0;
+
+  type Passenger = {
+    fullName: string;
+    docType: "national_id" | "passport";
+    docNumber: string;
+    nationality: string;
+    dob: string;
+    gender: "male" | "female" | "";
+    email: string;
+    phone: string;
+    baggage: "none" | "23kg" | "32kg";
+    meal: "standard" | "vegetarian" | "halal" | "kids";
+    specialAssistance: boolean;
+    acceptTerms: boolean;
+  };
+
+  const makeEmptyPassenger = (): Passenger => ({
+    fullName: "",
+    docType: "national_id",
+    docNumber: "",
+    nationality: language === "ar" ? "السعودية" : "Saudi Arabia",
+    dob: "",
+    gender: "",
+    email: "",
+    phone: "",
+    baggage: "23kg",
+    meal: "standard",
+    specialAssistance: false,
+    acceptTerms: false,
+  });
+
+  const [passengers, setPassengers] = useState<Record<string, Passenger>>(() =>
+    Object.fromEntries(items.filter((i) => i.type === "flight").map((i) => [i.id, makeEmptyPassenger()]))
+  );
+
+  // keep passengers map in sync with cart flights
+  const syncPassengers = () => {
+    setPassengers((prev) => {
+      const next: Record<string, Passenger> = {};
+      flightItems.forEach((i) => {
+        next[i.id] = prev[i.id] ?? makeEmptyPassenger();
+      });
+      return next;
+    });
+  };
+
+  const updatePassenger = (id: string, patch: Partial<Passenger>) => {
+    setPassengers((prev) => ({ ...prev, [id]: { ...(prev[id] ?? makeEmptyPassenger()), ...patch } }));
+  };
+
+  const validateFlightForms = (): string | null => {
+    for (const f of flightItems) {
+      const p = passengers[f.id];
+      if (!p) return language === "ar" ? "بيانات الراكب ناقصة" : "Passenger details missing";
+      if (!p.fullName.trim() || p.fullName.trim().split(/\s+/).length < 2)
+        return language === "ar" ? "الاسم الكامل مطلوب (مطابق للهوية/الجواز)" : "Full name (as on ID/passport) is required";
+      if (!p.docNumber.trim() || p.docNumber.trim().length < 5)
+        return language === "ar" ? "رقم الهوية أو الجواز غير صحيح" : "ID/Passport number is invalid";
+      if (!p.dob) return language === "ar" ? "تاريخ الميلاد مطلوب" : "Date of birth is required";
+      if (!p.gender) return language === "ar" ? "الجنس مطلوب" : "Gender is required";
+      if (!/^\S+@\S+\.\S+$/.test(p.email)) return language === "ar" ? "البريد الإلكتروني غير صحيح" : "Invalid email";
+      if (!/^[+0-9\s-]{8,}$/.test(p.phone)) return language === "ar" ? "رقم الجوال غير صحيح" : "Invalid phone number";
+      if (!p.acceptTerms)
+        return language === "ar"
+          ? "يجب الموافقة على شروط شركة الطيران وتأكيد صحة البيانات"
+          : "You must accept airline terms and confirm details are correct";
+    }
+    return null;
+  };
+
+
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
