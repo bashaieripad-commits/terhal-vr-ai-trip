@@ -7,7 +7,9 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Trash2, CreditCard, Hotel, Plane, MapPin, Calendar, ShieldCheck, Smartphone, Wallet, CheckCircle2, Copy, Loader2 } from "lucide-react";
+import { Trash2, CreditCard, Hotel, Plane, MapPin, Calendar, ShieldCheck, Smartphone, Wallet, CheckCircle2, Copy, Loader2, User, Luggage, Utensils, Info } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +34,92 @@ const Checkout = () => {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [bookedItems, setBookedItems] = useState<typeof items>([]);
 
+  const flightItems = items.filter((i) => i.type === "flight");
+  const hasFlights = flightItems.length > 0;
+
+  type Passenger = {
+    fullName: string;
+    docType: "national_id" | "passport";
+    docNumber: string;
+    nationality: string;
+    dob: string;
+    gender: "male" | "female" | "";
+    email: string;
+    phone: string;
+    baggage: "none" | "23kg" | "32kg";
+    meal: "standard" | "vegetarian" | "halal" | "kids";
+    specialAssistance: boolean;
+    acceptTerms: boolean;
+  };
+
+  const makeEmptyPassenger = (): Passenger => ({
+    fullName: "",
+    docType: "national_id",
+    docNumber: "",
+    nationality: language === "ar" ? "السعودية" : "Saudi Arabia",
+    dob: "",
+    gender: "",
+    email: "",
+    phone: "",
+    baggage: "23kg",
+    meal: "standard",
+    specialAssistance: false,
+    acceptTerms: false,
+  });
+
+  const [passengers, setPassengers] = useState<Record<string, Passenger>>(() =>
+    Object.fromEntries(items.filter((i) => i.type === "flight").map((i) => [i.id, makeEmptyPassenger()]))
+  );
+
+  // keep passengers map in sync with cart flights
+  const syncPassengers = () => {
+    setPassengers((prev) => {
+      const next: Record<string, Passenger> = {};
+      flightItems.forEach((i) => {
+        next[i.id] = prev[i.id] ?? makeEmptyPassenger();
+      });
+      return next;
+    });
+  };
+
+  const updatePassenger = (id: string, patch: Partial<Passenger>) => {
+    setPassengers((prev) => ({ ...prev, [id]: { ...(prev[id] ?? makeEmptyPassenger()), ...patch } }));
+  };
+
+  const validateFlightForms = (): string | null => {
+    for (const f of flightItems) {
+      const p = passengers[f.id];
+      if (!p) return language === "ar" ? "بيانات الراكب ناقصة" : "Passenger details missing";
+      if (!p.fullName.trim() || p.fullName.trim().split(/\s+/).length < 2)
+        return language === "ar" ? "الاسم الكامل مطلوب (مطابق للهوية/الجواز)" : "Full name (as on ID/passport) is required";
+      if (!p.docNumber.trim() || p.docNumber.trim().length < 5)
+        return language === "ar" ? "رقم الهوية أو الجواز غير صحيح" : "ID/Passport number is invalid";
+      if (!p.dob) return language === "ar" ? "تاريخ الميلاد مطلوب" : "Date of birth is required";
+      if (!p.gender) return language === "ar" ? "الجنس مطلوب" : "Gender is required";
+      if (!/^\S+@\S+\.\S+$/.test(p.email)) return language === "ar" ? "البريد الإلكتروني غير صحيح" : "Invalid email";
+      if (!/^[+0-9\s-]{8,}$/.test(p.phone)) return language === "ar" ? "رقم الجوال غير صحيح" : "Invalid phone number";
+      if (!p.acceptTerms)
+        return language === "ar"
+          ? "يجب الموافقة على شروط شركة الطيران وتأكيد صحة البيانات"
+          : "You must accept airline terms and confirm details are correct";
+    }
+    return null;
+  };
+
+
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (items.length === 0) return;
+
+    if (hasFlights) {
+      syncPassengers();
+      const err = validateFlightForms();
+      if (err) {
+        toast.error(err);
+        return;
+      }
+    }
     
     setIsProcessing(true);
     const ref = generateReferenceNumber();
@@ -48,8 +132,9 @@ const Checkout = () => {
       
       if (user) {
         // Create reservation in database
-        const reservationPromises = items.map((item) =>
-          supabase.from("reservations").insert({
+        const reservationPromises = items.map((item) => {
+          const passenger = item.type === "flight" ? passengers[item.id] : null;
+          return supabase.from("reservations").insert({
             user_id: user.id,
             type: item.type,
             item_name: item.name,
@@ -64,9 +149,28 @@ const Checkout = () => {
               location: item.location,
               image: item.image,
               nights: item.nights || null,
+              ...(passenger
+                ? {
+                    passenger: {
+                      full_name: passenger.fullName,
+                      doc_type: passenger.docType,
+                      doc_number: passenger.docNumber,
+                      nationality: passenger.nationality,
+                      dob: passenger.dob,
+                      gender: passenger.gender,
+                      email: passenger.email,
+                      phone: passenger.phone,
+                      baggage: passenger.baggage,
+                      meal: passenger.meal,
+                      special_assistance: passenger.specialAssistance,
+                    },
+                    pnr: ref.split("-").pop(),
+                    e_ticket: `ETKT-${ref}`,
+                  }
+                : {}),
             },
-          })
-        );
+          });
+        });
 
         const results = await Promise.all(reservationPromises);
         const errors = results.filter((r) => r.error);
@@ -304,6 +408,123 @@ const Checkout = () => {
                 ))}
               </CardContent>
             </Card>
+
+            {hasFlights && flightItems.map((flight, idx) => {
+              const p = passengers[flight.id] ?? makeEmptyPassenger();
+              return (
+                <Card key={flight.id} className="border-2 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-primary/5 to-sandy-gold/5">
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5 text-primary" />
+                      {language === "ar"
+                        ? `بيانات الراكب ${flightItems.length > 1 ? `(${idx + 1})` : ""} — ${flight.name}`
+                        : `Passenger Details ${flightItems.length > 1 ? `(${idx + 1})` : ""} — ${flight.name}`}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {language === "ar"
+                        ? "يجب أن تطابق البيانات وثيقة السفر تماماً (هوية وطنية للرحلات الداخلية، جواز سفر للدولية)."
+                        : "Details must match your travel document exactly (National ID for domestic, Passport for international)."}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>{language === "ar" ? "الاسم الكامل (كما في الوثيقة)" : "Full name (as on document)"}</Label>
+                        <Input value={p.fullName} onChange={(e) => updatePassenger(flight.id, { fullName: e.target.value })} placeholder={language === "ar" ? "محمد عبدالله السالم" : "Mohammed Abdullah Al-Salem"} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "ar" ? "نوع الوثيقة" : "Document type"}</Label>
+                        <Select value={p.docType} onValueChange={(v) => updatePassenger(flight.id, { docType: v as Passenger["docType"] })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="national_id">{language === "ar" ? "هوية وطنية / إقامة" : "National ID / Iqama"}</SelectItem>
+                            <SelectItem value="passport">{language === "ar" ? "جواز سفر" : "Passport"}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "ar" ? "رقم الوثيقة" : "Document number"}</Label>
+                        <Input value={p.docNumber} onChange={(e) => updatePassenger(flight.id, { docNumber: e.target.value.replace(/\s/g, "") })} placeholder={p.docType === "passport" ? "A12345678" : "1XXXXXXXXX"} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "ar" ? "تاريخ الميلاد" : "Date of birth"}</Label>
+                        <Input type="date" value={p.dob} max={new Date().toISOString().split("T")[0]} onChange={(e) => updatePassenger(flight.id, { dob: e.target.value })} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "ar" ? "الجنسية" : "Nationality"}</Label>
+                        <Input value={p.nationality} onChange={(e) => updatePassenger(flight.id, { nationality: e.target.value })} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "ar" ? "الجنس" : "Gender"}</Label>
+                        <Select value={p.gender} onValueChange={(v) => updatePassenger(flight.id, { gender: v as Passenger["gender"] })}>
+                          <SelectTrigger><SelectValue placeholder={language === "ar" ? "اختر" : "Select"} /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">{language === "ar" ? "ذكر" : "Male"}</SelectItem>
+                            <SelectItem value="female">{language === "ar" ? "أنثى" : "Female"}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "ar" ? "البريد الإلكتروني" : "Email"}</Label>
+                        <Input type="email" value={p.email} onChange={(e) => updatePassenger(flight.id, { email: e.target.value })} placeholder="name@example.com" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{language === "ar" ? "رقم الجوال" : "Mobile number"}</Label>
+                        <Input type="tel" value={p.phone} onChange={(e) => updatePassenger(flight.id, { phone: e.target.value })} placeholder="+966 5XX XXX XXX" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2"><Luggage className="h-4 w-4" />{language === "ar" ? "الأمتعة" : "Baggage"}</Label>
+                        <Select value={p.baggage} onValueChange={(v) => updatePassenger(flight.id, { baggage: v as Passenger["baggage"] })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">{language === "ar" ? "حقيبة يد فقط (7 كجم)" : "Cabin only (7 kg)"}</SelectItem>
+                            <SelectItem value="23kg">{language === "ar" ? "حقيبة 23 كجم" : "Checked 23 kg"}</SelectItem>
+                            <SelectItem value="32kg">{language === "ar" ? "حقيبة 32 كجم (+50 ر.س)" : "Checked 32 kg (+50 SAR)"}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2"><Utensils className="h-4 w-4" />{language === "ar" ? "الوجبة" : "Meal"}</Label>
+                        <Select value={p.meal} onValueChange={(v) => updatePassenger(flight.id, { meal: v as Passenger["meal"] })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="standard">{language === "ar" ? "عادية" : "Standard"}</SelectItem>
+                            <SelectItem value="halal">{language === "ar" ? "حلال" : "Halal"}</SelectItem>
+                            <SelectItem value="vegetarian">{language === "ar" ? "نباتية" : "Vegetarian"}</SelectItem>
+                            <SelectItem value="kids">{language === "ar" ? "وجبة أطفال" : "Kids meal"}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2">
+                      <Checkbox id={`assist-${flight.id}`} checked={p.specialAssistance} onCheckedChange={(c) => updatePassenger(flight.id, { specialAssistance: !!c })} />
+                      <Label htmlFor={`assist-${flight.id}`} className="text-sm cursor-pointer">
+                        {language === "ar" ? "أحتاج مساعدة خاصة (كرسي متحرك، إلخ)" : "I need special assistance (wheelchair, etc.)"}
+                      </Label>
+                    </div>
+
+                    <div className="rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-3 text-xs text-amber-900 dark:text-amber-200 flex gap-2">
+                      <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>
+                        {language === "ar"
+                          ? "تذكرة الطيران مرتبطة بهويتك الشخصية ولا يمكن نقلها أو إعادة بيعها. يرجى التحقق من البيانات قبل التأكيد."
+                          : "Flight ticket is tied to your identity and cannot be transferred or resold. Please verify details before confirming."}
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-2 pt-2">
+                      <Checkbox id={`terms-${flight.id}`} checked={p.acceptTerms} onCheckedChange={(c) => updatePassenger(flight.id, { acceptTerms: !!c })} />
+                      <Label htmlFor={`terms-${flight.id}`} className="text-sm cursor-pointer leading-relaxed">
+                        {language === "ar"
+                          ? "أؤكد صحة البيانات وأوافق على شروط شركة الطيران وسياسة الإلغاء."
+                          : "I confirm the details are correct and accept the airline's terms and cancellation policy."}
+                      </Label>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
 
             <Card className="border-2 shadow-lg">
               <CardHeader className="bg-gradient-to-r from-primary/5 to-sandy-gold/5">
