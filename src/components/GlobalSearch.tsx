@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Search, Sparkles, Snowflake, TrendingUp, Loader2, MapPin } from "lucide-react";
+import { Search, Sparkles, Snowflake, TrendingUp, Loader2, MapPin, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,21 @@ const saveRecent = (language: string, term: string) => {
   }
 };
 
+const clearRecents = (language: string) => {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    const parsed: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    delete parsed[language];
+    if (Object.keys(parsed).length === 0) {
+      window.localStorage.removeItem(RECENTS_KEY);
+    } else {
+      window.localStorage.setItem(RECENTS_KEY, JSON.stringify(parsed));
+    }
+  } catch {
+    // ignore
+  }
+};
 export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProps) => {
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -322,6 +337,24 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
             activeIndex={activeIndex}
             onPick={submitQuery}
             onHover={setActiveIndex}
+            action={
+              recents.length > 0 ? (
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    clearRecents(language);
+                    setRecents([]);
+                  }}
+                  className="ml-auto rtl:ml-0 rtl:mr-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors normal-case"
+                  aria-label={language === "ar" ? "مسح الاقتراحات الأخيرة" : "Clear recent suggestions"}
+                  title={language === "ar" ? "مسح الاقتراحات الأخيرة" : "Clear recent suggestions"}
+                >
+                  <X className="h-3 w-3" />
+                  {language === "ar" ? "مسح" : "Clear"}
+                </button>
+              ) : null
+            }
           />
           <SuggestionGroup
             icon={<Snowflake className="h-4 w-4 text-sandy-gold" />}
@@ -369,6 +402,7 @@ interface SuggestionGroupProps {
   activeIndex: number;
   onPick: (item: string) => void;
   onHover: (index: number) => void;
+  action?: React.ReactNode;
 }
 
 const SuggestionGroup = ({
@@ -379,13 +413,15 @@ const SuggestionGroup = ({
   activeIndex,
   onPick,
   onHover,
+  action,
 }: SuggestionGroupProps) => {
   if (!items || items.length === 0) return null;
   return (
     <div className="px-4 py-3 border-t border-border/40 first:border-t-0">
       <div className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {icon}
-        {label}
+        <span>{label}</span>
+        {action}
       </div>
       <div className="flex flex-wrap gap-2">
         {items.map((item, i) => {
