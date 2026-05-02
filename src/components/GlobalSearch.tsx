@@ -464,6 +464,11 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
                     e.preventDefault();
                     clearRecents(language);
                     setRecents([]);
+                    if (userId) {
+                      // Fire-and-forget: also wipe the remote copy so the
+                      // clear propagates to other devices on next load.
+                      void clearRecentsRemote(userId, language);
+                    }
                   }}
                   className="ml-auto rtl:ml-0 rtl:mr-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors normal-case"
                   aria-label={language === "ar" ? "مسح الاقتراحات الأخيرة" : "Clear recent suggestions"}
