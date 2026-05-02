@@ -143,6 +143,8 @@ const HotelDetails = () => {
                 </div>
               </CardContent>
             </Card>
+
+            <ReviewsSection itemId={hotel.id} itemType="hotel" itemName={hotel.title} />
           </motion.div>
 
           {/* Booking sidebar */}
