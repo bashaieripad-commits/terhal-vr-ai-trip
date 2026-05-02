@@ -149,18 +149,44 @@ const clearRecents = (language: string) => {
     // ignore
   }
 };
+type SearchType = "all" | "hotels" | "flights" | "events" | "activities";
+
+const TYPE_STORAGE_KEY = "tarhal:globalSearch:type";
+
+const loadType = (): SearchType => {
+  if (typeof window === "undefined") return "all";
+  try {
+    const v = window.localStorage.getItem(TYPE_STORAGE_KEY) as SearchType | null;
+    if (v && ["all", "hotels", "flights", "events", "activities"].includes(v)) return v;
+  } catch {
+    /* ignore */
+  }
+  return "all";
+};
+
 export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProps) => {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [searchType, setSearchType] = useState<SearchType>(() => loadType());
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { data, loading, fetchSuggestions } = useSearchSuggestions(language as "ar" | "en");
   const [recents, setRecents] = useState<string[]>(() => loadRecents(language));
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Persist the chosen filter type so it sticks across navigations.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(TYPE_STORAGE_KEY, searchType);
+    } catch {
+      /* ignore */
+    }
+  }, [searchType]);
 
   // Track auth state so recents can sync across devices for signed-in users.
   // We listen first, then read the existing session, per Supabase guidance.
