@@ -142,7 +142,7 @@ Deno.test("seats_public view: never exposes identity columns", async () => {
 // ---------------------------------------------------------------------------
 // 2. USER_ROLES — no privilege escalation
 // ---------------------------------------------------------------------------
-Deno.test("user_roles: regular user cannot self-assign admin", async () => {
+Deno.test({ name: "user_roles: regular user cannot self-assign admin", ignore: !SERVICE_KEY, fn: async () => {
   const { supabase, userId } = await createConfirmedUser();
 
   const { error } = await supabase
@@ -156,7 +156,7 @@ Deno.test("user_roles: regular user cannot self-assign admin", async () => {
   );
 });
 
-Deno.test("user_roles: regular user cannot update or delete role rows", async () => {
+Deno.test({ name: "user_roles: regular user cannot update or delete role rows", ignore: !SERVICE_KEY, fn: async () => {
   const { supabase } = await createConfirmedUser();
 
   const { error: updErr } = await supabase
@@ -190,7 +190,7 @@ Deno.test("user_roles: regular user cannot update or delete role rows", async ()
 // ---------------------------------------------------------------------------
 // 3. TICKETS — resale tampering protection
 // ---------------------------------------------------------------------------
-Deno.test("tickets: anon cannot purchase a non-listed ticket", async () => {
+Deno.test({ name: "tickets: anon cannot purchase a non-listed ticket", ignore: !SERVICE_KEY, fn: async () => {
   const { supabase } = await createConfirmedUser();
 
   // Try to claim an arbitrary ticket — RLS should block since is_resellable/listed required.
@@ -210,7 +210,7 @@ Deno.test("tickets: anon cannot purchase a non-listed ticket", async () => {
   }
 });
 
-Deno.test("tickets: tampering with immutable fields during purchase is rejected", async () => {
+Deno.test({ name: "tickets: tampering with immutable fields during purchase is rejected", ignore: !SERVICE_KEY, fn: async () => {
   const { supabase } = await createConfirmedUser();
   const userId = (await supabase.auth.getUser()).data.user!.id;
 
