@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SearchBar } from "@/components/SearchBar";
+import { GlobalSearch } from "@/components/GlobalSearch";
 
 interface ContentItem {
   id: string;
@@ -227,12 +228,22 @@ const SearchResults = () => {
           </p>
         </motion.div>
 
-        {/* Inline search bar for refining */}
+        {/* Free-text keyword search with suggestions */}
+        <motion.div
+          className="mb-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <GlobalSearch variant="hero" />
+        </motion.div>
+
+        {/* Inline search bar for refining by type */}
         <motion.div
           className="mb-8"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
+          transition={{ delay: 0.1 }}
         >
           <SearchBar />
         </motion.div>
