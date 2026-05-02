@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Search, Sparkles, Snowflake, TrendingUp, Loader2, MapPin, X } from "lucide-react";
+import { Search, Sparkles, Snowflake, TrendingUp, Loader2, MapPin, X, LayoutGrid, Hotel, Plane, CalendarHeart, Compass } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -149,18 +149,44 @@ const clearRecents = (language: string) => {
     // ignore
   }
 };
+type SearchType = "all" | "hotels" | "flights" | "events" | "activities";
+
+const TYPE_STORAGE_KEY = "tarhal:globalSearch:type";
+
+const loadType = (): SearchType => {
+  if (typeof window === "undefined") return "all";
+  try {
+    const v = window.localStorage.getItem(TYPE_STORAGE_KEY) as SearchType | null;
+    if (v && ["all", "hotels", "flights", "events", "activities"].includes(v)) return v;
+  } catch {
+    /* ignore */
+  }
+  return "all";
+};
+
 export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProps) => {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [searchType, setSearchType] = useState<SearchType>(() => loadType());
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { data, loading, fetchSuggestions } = useSearchSuggestions(language as "ar" | "en");
   const [recents, setRecents] = useState<string[]>(() => loadRecents(language));
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Persist the chosen filter type so it sticks across navigations.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(TYPE_STORAGE_KEY, searchType);
+    } catch {
+      /* ignore */
+    }
+  }, [searchType]);
 
   // Track auth state so recents can sync across devices for signed-in users.
   // We listen first, then read the existing session, per Supabase guidance.
@@ -301,9 +327,9 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
         setRecents(loadRecents(language));
       }
       setOpen(false);
-      navigate(`/search?type=all&q=${encodeURIComponent(term)}`);
+      navigate(`/search?type=${searchType}&q=${encodeURIComponent(term)}`);
     },
-    [data.city, language, navigate, userId],
+    [data.city, language, navigate, userId, searchType],
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -432,6 +458,12 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
           )}
           role="listbox"
         >
+          <TypeFilterBar
+            value={searchType}
+            onChange={setSearchType}
+            language={language as "ar" | "en"}
+          />
+
           {loading && flat.length === 0 && (
             <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -577,6 +609,64 @@ const SuggestionGroup = ({
           );
         })}
       </div>
+    </div>
+  );
+};
+
+// Quick filter chips rendered at the top of the suggestions panel.
+// Defined outside the parent component so it doesn't remount on every keystroke.
+interface TypeFilterBarProps {
+  value: SearchType;
+  onChange: (next: SearchType) => void;
+  language: "ar" | "en";
+}
+
+const TYPE_OPTIONS: Array<{
+  key: SearchType;
+  icon: React.ComponentType<{ className?: string }>;
+  ar: string;
+  en: string;
+}> = [
+  { key: "all", icon: LayoutGrid, ar: "الكل", en: "All" },
+  { key: "hotels", icon: Hotel, ar: "فنادق", en: "Hotels" },
+  { key: "flights", icon: Plane, ar: "طيران", en: "Flights" },
+  { key: "events", icon: CalendarHeart, ar: "فعاليات", en: "Events" },
+  { key: "activities", icon: Compass, ar: "أنشطة", en: "Activities" },
+];
+
+const TypeFilterBar = ({ value, onChange, language }: TypeFilterBarProps) => {
+  return (
+    <div
+      className="flex items-center gap-1.5 overflow-x-auto px-3 pt-3 pb-2 border-b border-border/40 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      role="tablist"
+      aria-label={language === "ar" ? "تصفية حسب النوع" : "Filter by type"}
+    >
+      {TYPE_OPTIONS.map((opt) => {
+        const Icon = opt.icon;
+        const active = value === opt.key;
+        return (
+          <button
+            key={opt.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onMouseDown={(e) => {
+              // Keep input focused so the panel stays open.
+              e.preventDefault();
+              onChange(opt.key);
+            }}
+            className={cn(
+              "inline-flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+              active
+                ? "bg-primary text-primary-foreground border-primary shadow-sm scale-[1.02]"
+                : "bg-muted/50 text-muted-foreground border-border/40 hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            <span>{language === "ar" ? opt.ar : opt.en}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };
