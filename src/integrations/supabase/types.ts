@@ -486,6 +486,36 @@ export type Database = {
           },
         ]
       }
+      user_recent_searches: {
+        Row: {
+          created_at: string
+          id: string
+          language: string
+          term: string
+          term_lower: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language: string
+          term: string
+          term_lower?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: string
+          term?: string
+          term_lower?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
