@@ -143,7 +143,7 @@ Deno.test("seats_public view: never exposes identity columns", async () => {
 // 2. USER_ROLES — no privilege escalation
 // ---------------------------------------------------------------------------
 Deno.test("user_roles: regular user cannot self-assign admin", async () => {
-  const { supabase, userId } = await signUpEphemeralUser();
+  const { supabase, userId } = await createConfirmedUser();
 
   const { error } = await supabase
     .from("user_roles")
@@ -157,7 +157,7 @@ Deno.test("user_roles: regular user cannot self-assign admin", async () => {
 });
 
 Deno.test("user_roles: regular user cannot update or delete role rows", async () => {
-  const { supabase } = await signUpEphemeralUser();
+  const { supabase } = await createConfirmedUser();
 
   const { error: updErr } = await supabase
     .from("user_roles")
@@ -191,7 +191,7 @@ Deno.test("user_roles: regular user cannot update or delete role rows", async ()
 // 3. TICKETS — resale tampering protection
 // ---------------------------------------------------------------------------
 Deno.test("tickets: anon cannot purchase a non-listed ticket", async () => {
-  const { supabase } = await signUpEphemeralUser();
+  const { supabase } = await createConfirmedUser();
 
   // Try to claim an arbitrary ticket — RLS should block since is_resellable/listed required.
   const { data, error } = await supabase
@@ -211,7 +211,7 @@ Deno.test("tickets: anon cannot purchase a non-listed ticket", async () => {
 });
 
 Deno.test("tickets: tampering with immutable fields during purchase is rejected", async () => {
-  const { supabase } = await signUpEphemeralUser();
+  const { supabase } = await createConfirmedUser();
   const userId = (await supabase.auth.getUser()).data.user!.id;
 
   // Attempt a purchase-style update that ALSO modifies protected columns.
