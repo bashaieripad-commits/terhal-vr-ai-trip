@@ -14,6 +14,9 @@ interface Review {
   rating: number;
   comment: string;
   is_approved: boolean;
+  is_verified?: boolean;
+  is_hidden?: boolean;
+  report_count?: number;
   created_at: string;
 }
 
