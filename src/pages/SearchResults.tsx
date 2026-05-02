@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SearchBar } from "@/components/SearchBar";
+import { GlobalSearch } from "@/components/GlobalSearch";
 
 interface ContentItem {
   id: string;
