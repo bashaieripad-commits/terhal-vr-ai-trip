@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.trim_user_recent_searches() FROM PUBLIC, anon, authenticated;
