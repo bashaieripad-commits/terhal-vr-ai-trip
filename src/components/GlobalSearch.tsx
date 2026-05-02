@@ -327,9 +327,9 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
         setRecents(loadRecents(language));
       }
       setOpen(false);
-      navigate(`/search?type=all&q=${encodeURIComponent(term)}`);
+      navigate(`/search?type=${searchType}&q=${encodeURIComponent(term)}`);
     },
-    [data.city, language, navigate, userId],
+    [data.city, language, navigate, userId, searchType],
   );
 
   const handleSubmit = (e: React.FormEvent) => {
