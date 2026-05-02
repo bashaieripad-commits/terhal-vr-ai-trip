@@ -477,7 +477,35 @@ const MyTickets = () => {
     return { ...res, ticket };
   });
 
-  const filteredBookings = combinedBookings.filter((b) => {
+  // Tickets owned by the user but with no matching reservation (e.g. purchased
+  // from the resale marketplace). Display them as normal bookings — the buyer
+  // must NOT see any trace of the previous owner or resale history.
+  const reservationTicketIds = new Set(
+    combinedBookings.map((b) => b.ticket?.id).filter(Boolean) as string[]
+  );
+  const purchasedTickets = tickets.filter((t) => !reservationTicketIds.has(t.id));
+  const purchasedAsBookings: (Reservation & { ticket?: TicketRow })[] = purchasedTickets.map((t) => ({
+    id: `ticket-${t.id}`,
+    type: "activity",
+    item_name: t.event_name,
+    status: "confirmed",
+    total_price: null,
+    check_in: t.event_date,
+    check_out: null,
+    guests: null,
+    details: null,
+    created_at: t.created_at,
+    ticket: {
+      ...t,
+      is_resellable: false,
+      resell_status: null,
+      resell_price: null,
+    } as TicketRow,
+  }));
+
+  const allBookings = [...combinedBookings, ...purchasedAsBookings];
+
+  const filteredBookings = allBookings.filter((b) => {
     const q = searchQuery.toLowerCase();
     return (
       b.item_name.toLowerCase().includes(q) ||
