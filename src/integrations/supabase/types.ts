@@ -271,15 +271,51 @@ export type Database = {
         }
         Relationships: []
       }
+      review_reports: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          review_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          review_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          review_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_reports_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           comment: string | null
           created_at: string | null
           id: string
           is_approved: boolean | null
+          is_hidden: boolean
+          is_verified: boolean
           item_id: string
           item_type: string
           rating: number
+          report_count: number
+          reservation_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -288,9 +324,13 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_approved?: boolean | null
+          is_hidden?: boolean
+          is_verified?: boolean
           item_id: string
           item_type: string
           rating: number
+          report_count?: number
+          reservation_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -299,9 +339,13 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_approved?: boolean | null
+          is_hidden?: boolean
+          is_verified?: boolean
           item_id?: string
           item_type?: string
           rating?: number
+          report_count?: number
+          reservation_id?: string | null
           updated_at?: string | null
           user_id?: string
         }

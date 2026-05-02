@@ -50,6 +50,35 @@ serve(async (req) => {
       throw new Error('Failed to fetch available options');
     }
 
+    // Attach review aggregates so AI can prefer higher-rated items
+    const allIds = [...(hotels ?? []), ...(activities ?? [])].map((c: any) => c.id);
+    const ratingMap: Record<string, { avg: number; count: number }> = {};
+    if (allIds.length) {
+      const { data: revs } = await supabase
+        .from('reviews')
+        .select('item_id, rating, is_approved, is_hidden')
+        .in('item_id', allIds)
+        .eq('is_approved', true)
+        .eq('is_hidden', false);
+      (revs ?? []).forEach((r: any) => {
+        const m = ratingMap[r.item_id] ?? { avg: 0, count: 0 };
+        m.avg = (m.avg * m.count + r.rating) / (m.count + 1);
+        m.count += 1;
+        ratingMap[r.item_id] = m;
+      });
+    }
+    const enrich = (arr: any[] | null) =>
+      (arr ?? [])
+        .map((c) => ({
+          ...c,
+          avg_rating: ratingMap[c.id]?.avg ? Number(ratingMap[c.id].avg.toFixed(2)) : null,
+          reviews_count: ratingMap[c.id]?.count ?? 0,
+        }))
+        .sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0));
+
+    const hotelsRanked = enrich(hotels);
+    const activitiesRanked = enrich(activities);
+
     const systemPrompt = language === 'ar' 
       ? `أنت مخطط رحلات سياحية ذكي متخصص في السياحة في السعودية. مهمتك هي اقتراح رحلة سياحية كاملة بناءً على موقع المستخدم.
 
@@ -65,7 +94,7 @@ serve(async (req) => {
 - hotel (object: {id, title, price, details})
 - activities (array of objects: [{id, title, price, details}])
 
-تأكد من أن جميع الأسعار بالريال السعودي وأن التفاصيل باللغة العربية.`
+فضّل الفنادق والفعاليات ذات avg_rating الأعلى عند توفّر مراجعات. تأكد من أن جميع الأسعار بالريال السعودي وأن التفاصيل باللغة العربية.`
       : `You are a smart travel planner specializing in Saudi Arabia tourism. Your task is to suggest a complete travel package based on the user's location.
 
 Analyze the available data and suggest:
@@ -80,16 +109,16 @@ Respond in JSON format only with the following keys:
 - hotel (object: {id, title, price, details})
 - activities (array of objects: [{id, title, price, details}])
 
-Ensure all prices are in SAR and details match the requested language.`;
+Prefer hotels and activities with higher avg_rating when reviews are available. Ensure all prices are in SAR and details match the requested language.`;
 
     const userPrompt = language === 'ar'
       ? `المستخدم موجود في: ${userLocation}
 
 الفنادق المتاحة:
-${JSON.stringify(hotels, null, 2)}
+${JSON.stringify(hotelsRanked, null, 2)}
 
 الفعاليات المتاحة:
-${JSON.stringify(activities, null, 2)}
+${JSON.stringify(activitiesRanked, null, 2)}
 
 الرحلات المتاحة:
 ${JSON.stringify(flights, null, 2)}
@@ -98,10 +127,10 @@ ${JSON.stringify(flights, null, 2)}
       : `User is located in: ${userLocation}
 
 Available hotels:
-${JSON.stringify(hotels, null, 2)}
+${JSON.stringify(hotelsRanked, null, 2)}
 
 Available activities:
-${JSON.stringify(activities, null, 2)}
+${JSON.stringify(activitiesRanked, null, 2)}
 
 Available flights:
 ${JSON.stringify(flights, null, 2)}

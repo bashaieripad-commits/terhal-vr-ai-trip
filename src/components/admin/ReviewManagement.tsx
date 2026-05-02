@@ -14,6 +14,9 @@ interface Review {
   rating: number;
   comment: string;
   is_approved: boolean;
+  is_verified?: boolean;
+  is_hidden?: boolean;
+  report_count?: number;
   created_at: string;
 }
 
@@ -90,6 +93,8 @@ const ReviewManagement = () => {
               <TableHead>النوع</TableHead>
               <TableHead>التقييم</TableHead>
               <TableHead>التعليق</TableHead>
+              <TableHead>موثّق</TableHead>
+              <TableHead>البلاغات</TableHead>
               <TableHead>الحالة</TableHead>
               <TableHead>التاريخ</TableHead>
               <TableHead>الإجراءات</TableHead>
@@ -110,8 +115,16 @@ const ReviewManagement = () => {
                   {review.comment || "-"}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={review.is_approved ? "default" : "secondary"}>
-                    {review.is_approved ? "معتمدة" : "معلقة"}
+                  {review.is_verified ? <Badge>موثّق</Badge> : <Badge variant="outline">—</Badge>}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={(review.report_count ?? 0) > 0 ? "destructive" : "outline"}>
+                    {review.report_count ?? 0}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={review.is_hidden ? "destructive" : review.is_approved ? "default" : "secondary"}>
+                    {review.is_hidden ? "مخفية" : review.is_approved ? "معتمدة" : "معلقة"}
                   </Badge>
                 </TableCell>
                 <TableCell>

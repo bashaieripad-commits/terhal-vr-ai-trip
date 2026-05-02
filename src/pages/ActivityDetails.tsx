@@ -11,6 +11,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import ReviewsSection from "@/components/reviews/ReviewsSection";
 
 interface Activity {
   id: string; title: string; description: string; location: string; price: number; images: string[]; vr_content: string | null;
@@ -119,6 +120,8 @@ const ActivityDetails = () => {
                 <p className="text-muted-foreground leading-relaxed">{activity.description}</p>
               </CardContent>
             </Card>
+
+            <ReviewsSection itemId={activity.id} itemType="activity" itemName={activity.title} />
           </motion.div>
 
           <motion.div 
