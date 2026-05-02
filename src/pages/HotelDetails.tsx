@@ -66,7 +66,11 @@ const HotelDetails = () => {
   );
 
   const nights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
-  const totalPrice = nights * hotel.price;
+  const stay = checkIn && checkOut && nights > 0
+    ? calculateStayPrice(hotel.price, checkIn, checkOut)
+    : null;
+  const totalPrice = stay ? stay.total : nights * hotel.price;
+  const avgNightly = nights > 0 ? Math.round(totalPrice / nights) : hotel.price;
 
   const handleAddToCart = () => {
     if (!checkIn || !checkOut) { toast.error(language === "ar" ? "الرجاء اختيار تواريخ الحجز" : "Please select dates"); return; }
