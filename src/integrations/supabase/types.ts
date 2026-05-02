@@ -564,6 +564,18 @@ export type Database = {
       }
     }
     Functions: {
+      admin_search_trends: {
+        Args: {
+          p_city: string
+          p_from: string
+          p_group_by: string
+          p_language: string
+          p_limit: number
+          p_search: string
+          p_to: string
+        }
+        Returns: Json
+      }
       generate_flight_seats: {
         Args: { p_aircraft_type?: string; p_flight_id: string }
         Returns: undefined
