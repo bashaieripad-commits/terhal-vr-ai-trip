@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { VRViewer } from "@/components/VRViewer";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import ReviewsSection from "@/components/reviews/ReviewsSection";
 
 interface Hotel {
   id: string; title: string; description: string; location: string; price: number; images: string[]; vr_content: string | null;
