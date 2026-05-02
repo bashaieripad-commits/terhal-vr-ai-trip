@@ -16,6 +16,8 @@ import { VRViewer } from "@/components/VRViewer";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import ReviewsSection from "@/components/reviews/ReviewsSection";
+import { calculateStayPrice } from "@/lib/dynamicPricing";
+import { Sparkles } from "lucide-react";
 
 interface Hotel {
   id: string; title: string; description: string; location: string; price: number; images: string[]; vr_content: string | null;
@@ -64,7 +66,11 @@ const HotelDetails = () => {
   );
 
   const nights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
-  const totalPrice = nights * hotel.price;
+  const stay = checkIn && checkOut && nights > 0
+    ? calculateStayPrice(hotel.price, checkIn, checkOut)
+    : null;
+  const totalPrice = stay ? stay.total : nights * hotel.price;
+  const avgNightly = nights > 0 ? Math.round(totalPrice / nights) : hotel.price;
 
   const handleAddToCart = () => {
     if (!checkIn || !checkOut) { toast.error(language === "ar" ? "الرجاء اختيار تواريخ الحجز" : "Please select dates"); return; }
@@ -182,12 +188,18 @@ const HotelDetails = () => {
                   ))}
                 </div>
 
-                {nights > 0 && (
+                {nights > 0 && stay && (
                   <div className="p-4 bg-primary/5 rounded-2xl space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>{hotel.price} {language === "ar" ? "ر.س" : "SAR"} × {nights} {language === "ar" ? "ليالي" : "nights"}</span>
-                      <span>{totalPrice} {language === "ar" ? "ر.س" : "SAR"}</span>
+                      <span>{language === "ar" ? "متوسط السعر/ليلة" : "Avg / night"}</span>
+                      <span>{avgNightly} {language === "ar" ? "ر.س" : "SAR"}</span>
                     </div>
+                    {stay.hasSurge && (
+                      <div className="flex items-start gap-2 text-xs p-2 rounded-lg bg-sandy-gold/15 text-foreground/80">
+                        <Sparkles className="h-3.5 w-3.5 mt-0.5 text-sandy-gold" />
+                        <span>{language === "ar" ? `الأسعار أعلى بسبب عطلة نهاية الأسبوع/الموسم (+${stay.surge} ر.س)` : `Prices are higher due to weekend/seasonal demand (+${stay.surge} SAR)`}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-bold text-lg pt-2 border-t border-primary/10">
                       <span>{language === "ar" ? "الإجمالي" : "Total"}</span>
                       <span className="text-primary">{totalPrice} {language === "ar" ? "ر.س" : "SAR"}</span>
