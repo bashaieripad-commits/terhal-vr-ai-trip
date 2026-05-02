@@ -50,6 +50,35 @@ serve(async (req) => {
       throw new Error('Failed to fetch available options');
     }
 
+    // Attach review aggregates so AI can prefer higher-rated items
+    const allIds = [...(hotels ?? []), ...(activities ?? [])].map((c: any) => c.id);
+    const ratingMap: Record<string, { avg: number; count: number }> = {};
+    if (allIds.length) {
+      const { data: revs } = await supabase
+        .from('reviews')
+        .select('item_id, rating, is_approved, is_hidden')
+        .in('item_id', allIds)
+        .eq('is_approved', true)
+        .eq('is_hidden', false);
+      (revs ?? []).forEach((r: any) => {
+        const m = ratingMap[r.item_id] ?? { avg: 0, count: 0 };
+        m.avg = (m.avg * m.count + r.rating) / (m.count + 1);
+        m.count += 1;
+        ratingMap[r.item_id] = m;
+      });
+    }
+    const enrich = (arr: any[] | null) =>
+      (arr ?? [])
+        .map((c) => ({
+          ...c,
+          avg_rating: ratingMap[c.id]?.avg ? Number(ratingMap[c.id].avg.toFixed(2)) : null,
+          reviews_count: ratingMap[c.id]?.count ?? 0,
+        }))
+        .sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0));
+
+    const hotelsRanked = enrich(hotels);
+    const activitiesRanked = enrich(activities);
+
     const systemPrompt = language === 'ar' 
       ? `أنت مخطط رحلات سياحية ذكي متخصص في السياحة في السعودية. مهمتك هي اقتراح رحلة سياحية كاملة بناءً على موقع المستخدم.
 
