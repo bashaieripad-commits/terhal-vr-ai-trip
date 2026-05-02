@@ -64,6 +64,76 @@ const saveRecent = (language: string, term: string) => {
   }
 };
 
+// --- Remote (cross-device) sync helpers --------------------------------------
+// When the user is signed in we mirror recents into `user_recent_searches`
+// so they sync across devices. Local storage stays as the offline fallback
+// and as a buffer that gets merged into the remote store on sign-in.
+
+const loadRecentsRemote = async (
+  userId: string,
+  language: string,
+): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from("user_recent_searches")
+    .select("term, updated_at")
+    .eq("user_id", userId)
+    .eq("language", language)
+    .order("updated_at", { ascending: false })
+    .limit(RECENTS_LIMIT);
+  if (error) {
+    console.warn("recents load (remote) failed", error);
+    return [];
+  }
+  return (data ?? []).map((r) => r.term as string);
+};
+
+const saveRecentRemote = async (
+  userId: string,
+  language: string,
+  term: string,
+): Promise<void> => {
+  const clean = term.trim();
+  if (!clean) return;
+  // Upsert by (user_id, language, term_lower) so reusing a term bumps it
+  // to the top instead of creating duplicates. The DB trigger trims the
+  // list to RECENTS_LIMIT per (user, language).
+  const { error } = await supabase
+    .from("user_recent_searches")
+    .upsert(
+      {
+        user_id: userId,
+        language,
+        term: clean.slice(0, 200),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,language,term_lower" },
+    );
+  if (error) console.warn("recents save (remote) failed", error);
+};
+
+const clearRecentsRemote = async (
+  userId: string,
+  language: string,
+): Promise<void> => {
+  const { error } = await supabase
+    .from("user_recent_searches")
+    .delete()
+    .eq("user_id", userId)
+    .eq("language", language);
+  if (error) console.warn("recents clear (remote) failed", error);
+};
+
+// Merge any local recents into the remote store on sign-in. Oldest first
+// so the most recent local pick ends up with the freshest updated_at.
+const mergeLocalIntoRemote = async (userId: string, language: string) => {
+  const local = loadRecents(language);
+  if (local.length === 0) return;
+  for (const term of [...local].reverse()) {
+    await saveRecentRemote(userId, language, term);
+  }
+};
+
+
 const clearRecents = (language: string) => {
   if (typeof window === "undefined") return;
   try {
@@ -90,11 +160,52 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
   const listRef = useRef<HTMLDivElement>(null);
   const { data, loading, fetchSuggestions } = useSearchSuggestions(language as "ar" | "en");
   const [recents, setRecents] = useState<string[]>(() => loadRecents(language));
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Reload recents when language changes so AR/EN don't bleed into each other.
+  // Track auth state so recents can sync across devices for signed-in users.
+  // We listen first, then read the existing session, per Supabase guidance.
   useEffect(() => {
-    setRecents(loadRecents(language));
-  }, [language]);
+    let active = true;
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      setUserId(session?.user?.id ?? null);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setUserId(data.session?.user?.id ?? null);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Reload recents when the language or auth state changes. For signed-in
+  // users we merge any local picks made while signed-out into the remote
+  // store, then read the canonical list from the server.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (userId) {
+        try {
+          await mergeLocalIntoRemote(userId, language);
+          // After merging, drop the local copy for this language so the
+          // remote store is the single source of truth across devices.
+          clearRecents(language);
+          const remote = await loadRecentsRemote(userId, language);
+          if (!cancelled) setRecents(remote);
+        } catch (err) {
+          console.warn("recents sync failed", err);
+          if (!cancelled) setRecents(loadRecents(language));
+        }
+      } else {
+        if (!cancelled) setRecents(loadRecents(language));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [language, userId]);
 
   // Close on outside click.
   useEffect(() => {
@@ -179,12 +290,20 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
         console.warn("search log failed", err);
       }
       // Persist this pick so it appears at the top of "For you" next time.
-      saveRecent(language, term);
-      setRecents(loadRecents(language));
+      // Signed-in users get cross-device sync via the remote table; others
+      // fall back to localStorage only.
+      if (userId) {
+        await saveRecentRemote(userId, language, term);
+        const remote = await loadRecentsRemote(userId, language);
+        setRecents(remote);
+      } else {
+        saveRecent(language, term);
+        setRecents(loadRecents(language));
+      }
       setOpen(false);
       navigate(`/search?type=all&q=${encodeURIComponent(term)}`);
     },
-    [data.city, language, navigate],
+    [data.city, language, navigate, userId],
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -345,6 +464,11 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
                     e.preventDefault();
                     clearRecents(language);
                     setRecents([]);
+                    if (userId) {
+                      // Fire-and-forget: also wipe the remote copy so the
+                      // clear propagates to other devices on next load.
+                      void clearRecentsRemote(userId, language);
+                    }
                   }}
                   className="ml-auto rtl:ml-0 rtl:mr-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors normal-case"
                   aria-label={language === "ar" ? "مسح الاقتراحات الأخيرة" : "Clear recent suggestions"}
