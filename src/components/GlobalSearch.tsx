@@ -64,6 +64,21 @@ const saveRecent = (language: string, term: string) => {
   }
 };
 
+const clearRecents = (language: string) => {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    const parsed: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    delete parsed[language];
+    if (Object.keys(parsed).length === 0) {
+      window.localStorage.removeItem(RECENTS_KEY);
+    } else {
+      window.localStorage.setItem(RECENTS_KEY, JSON.stringify(parsed));
+    }
+  } catch {
+    // ignore
+  }
+};
 export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProps) => {
   const { language } = useLanguage();
   const navigate = useNavigate();
