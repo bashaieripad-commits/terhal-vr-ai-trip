@@ -639,7 +639,20 @@ const MyTickets = () => {
                                   </Button>
                                 )}
                                 {booking.status === "confirmed" && (
-                                  booking.ticket?.resell_status === "listed" ? (
+                                  booking.type === "flight" ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled
+                                      title={isAr
+                                        ? "تذاكر الطيران لا يمكن إعادة بيعها لأنها مرتبطة بمعلومات شخصية وأمنية."
+                                        : "Flight tickets cannot be resold due to personal and security information requirements."}
+                                      className="rounded-lg text-xs opacity-70 cursor-not-allowed"
+                                    >
+                                      <Plane className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+                                      {isAr ? "غير قابل للبيع" : "Non-transferable"}
+                                    </Button>
+                                  ) : booking.ticket?.resell_status === "listed" ? (
                                     <Button size="sm" variant="outline" className="rounded-lg text-xs border-red-300 text-red-500" onClick={() => requestCancelResale(booking.ticket!.id)}>
                                       <XCircle className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
                                       {isAr ? "إلغاء البيع" : "Cancel"}
@@ -650,6 +663,13 @@ const MyTickets = () => {
                                       {isAr ? "إعادة بيع" : "Resell"}
                                     </Button>
                                   )
+                                )}
+                                {booking.type === "flight" && booking.status === "confirmed" && (
+                                  <p className="basis-full text-[10px] text-muted-foreground mt-1 max-w-[220px] text-right rtl:text-left">
+                                    {isAr
+                                      ? "تذاكر الطيران مرتبطة بهويتك الشخصية ولا يمكن نقلها."
+                                      : "Flight tickets are linked to your identity and cannot be transferred."}
+                                  </p>
                                 )}
                               </div>
                             </div>
