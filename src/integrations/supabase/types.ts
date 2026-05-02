@@ -307,6 +307,33 @@ export type Database = {
         }
         Relationships: []
       }
+      search_queries: {
+        Row: {
+          city: string | null
+          created_at: string
+          id: string
+          language: string | null
+          query: string
+          user_id: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          query: string
+          user_id?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          query?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       seats: {
         Row: {
           created_at: string | null
