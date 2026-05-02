@@ -476,7 +476,59 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      seats_public: {
+        Row: {
+          created_at: string | null
+          flight_id: string | null
+          id: string | null
+          is_aisle: boolean | null
+          is_available: boolean | null
+          is_window: boolean | null
+          price_modifier: number | null
+          seat_class: string | null
+          seat_column: string | null
+          seat_number: string | null
+          seat_row: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          flight_id?: string | null
+          id?: string | null
+          is_aisle?: boolean | null
+          is_available?: boolean | null
+          is_window?: boolean | null
+          price_modifier?: number | null
+          seat_class?: string | null
+          seat_column?: string | null
+          seat_number?: string | null
+          seat_row?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          flight_id?: string | null
+          id?: string | null
+          is_aisle?: boolean | null
+          is_available?: boolean | null
+          is_window?: boolean | null
+          price_modifier?: number | null
+          seat_class?: string | null
+          seat_column?: string | null
+          seat_number?: string | null
+          seat_row?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seats_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "flights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       generate_flight_seats: {
