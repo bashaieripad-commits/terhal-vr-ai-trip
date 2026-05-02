@@ -74,6 +74,12 @@ export const GlobalSearch = ({ variant = "navbar", className }: GlobalSearchProp
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const { data, loading, fetchSuggestions } = useSearchSuggestions(language as "ar" | "en");
+  const [recents, setRecents] = useState<string[]>(() => loadRecents(language));
+
+  // Reload recents when language changes so AR/EN don't bleed into each other.
+  useEffect(() => {
+    setRecents(loadRecents(language));
+  }, [language]);
 
   // Close on outside click.
   useEffect(() => {
