@@ -55,6 +55,11 @@ export const Navbar = () => {
           </span>
         </Link>
 
+        {/* Global search — visible on lg+ in navbar */}
+        <div className="hidden lg:flex flex-1 max-w-md mx-6">
+          <GlobalSearch variant="navbar" />
+        </div>
+
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-6" role="menubar">
           {navLinks.map((link) => (
